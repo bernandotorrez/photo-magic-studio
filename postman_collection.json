@@ -1,0 +1,318 @@
+{
+  "info": {
+    "name": "Photo Enhancement API",
+    "description": "API untuk generate gambar produk dengan AI enhancement",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "value",
+        "value": "{{API_KEY}}",
+        "type": "string"
+      },
+      {
+        "key": "key",
+        "value": "x-api-key",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "https://your-project-id.supabase.co/functions/v1",
+      "type": "string"
+    },
+    {
+      "key": "API_KEY",
+      "value": "eak_your_api_key_here",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Generate Enhanced Image",
+      "item": [
+        {
+          "name": "Basic Generation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"imageUrl\": \"https://images.unsplash.com/photo-1523381210434-271e8be1f52b\",\n  \"enhancement\": \"add_female_model\",\n  \"classification\": \"clothing\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api-generate",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api-generate"]
+            },
+            "description": "Generate gambar dengan enhancement dasar"
+          },
+          "response": []
+        },
+        {
+          "name": "With Text Watermark",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"imageUrl\": \"https://images.unsplash.com/photo-1523381210434-271e8be1f52b\",\n  \"enhancement\": \"add_female_model\",\n  \"classification\": \"clothing\",\n  \"watermark\": {\n    \"type\": \"text\",\n    \"text\": \"My Brand\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api-generate",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api-generate"]
+            },
+            "description": "Generate dengan text watermark"
+          },
+          "response": []
+        },
+        {
+          "name": "With Logo Watermark",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"imageUrl\": \"https://images.unsplash.com/photo-1523381210434-271e8be1f52b\",\n  \"enhancement\": \"add_female_model\",\n  \"classification\": \"clothing\",\n  \"watermark\": {\n    \"type\": \"logo\",\n    \"logoUrl\": \"https://example.com/logo.png\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api-generate",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api-generate"]
+            },
+            "description": "Generate dengan logo watermark"
+          },
+          "response": []
+        },
+        {
+          "name": "Male Model",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"imageUrl\": \"https://images.unsplash.com/photo-1523381210434-271e8be1f52b\",\n  \"enhancement\": \"add_male_model\",\n  \"classification\": \"clothing\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api-generate",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api-generate"]
+            },
+            "description": "Generate dengan model pria"
+          },
+          "response": []
+        },
+        {
+          "name": "Female Hijab Model",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"imageUrl\": \"https://images.unsplash.com/photo-1523381210434-271e8be1f52b\",\n  \"enhancement\": \"add_female_hijab_model\",\n  \"classification\": \"clothing\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api-generate",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api-generate"]
+            },
+            "description": "Generate dengan model wanita berhijab"
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Background",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"imageUrl\": \"https://images.unsplash.com/photo-1523381210434-271e8be1f52b\",\n  \"enhancement\": \"remove_background\",\n  \"classification\": \"clothing\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api-generate",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api-generate"]
+            },
+            "description": "Hapus background gambar"
+          },
+          "response": []
+        },
+        {
+          "name": "Improve Lighting",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"imageUrl\": \"https://images.unsplash.com/photo-1523381210434-271e8be1f52b\",\n  \"enhancement\": \"improve_lighting\",\n  \"classification\": \"clothing\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api-generate",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api-generate"]
+            },
+            "description": "Perbaiki pencahayaan foto"
+          },
+          "response": []
+        },
+        {
+          "name": "Lifestyle Photo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"imageUrl\": \"https://images.unsplash.com/photo-1523381210434-271e8be1f52b\",\n  \"enhancement\": \"lifestyle\",\n  \"classification\": \"clothing\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api-generate",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api-generate"]
+            },
+            "description": "Generate foto lifestyle"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Error Cases",
+      "item": [
+        {
+          "name": "Missing API Key",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"imageUrl\": \"https://images.unsplash.com/photo-1523381210434-271e8be1f52b\",\n  \"enhancement\": \"add_female_model\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api-generate",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api-generate"]
+            },
+            "description": "Test error ketika API key tidak disertakan"
+          },
+          "response": []
+        },
+        {
+          "name": "Invalid API Key",
+          "request": {
+            "auth": {
+              "type": "apikey",
+              "apikey": [
+                {
+                  "key": "value",
+                  "value": "invalid_key",
+                  "type": "string"
+                },
+                {
+                  "key": "key",
+                  "value": "x-api-key",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"imageUrl\": \"https://images.unsplash.com/photo-1523381210434-271e8be1f52b\",\n  \"enhancement\": \"add_female_model\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api-generate",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api-generate"]
+            },
+            "description": "Test error dengan API key yang salah"
+          },
+          "response": []
+        },
+        {
+          "name": "Missing Required Fields",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enhancement\": \"add_female_model\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api-generate",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api-generate"]
+            },
+            "description": "Test error ketika imageUrl tidak disertakan"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

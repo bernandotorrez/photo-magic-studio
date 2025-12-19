@@ -13,6 +13,8 @@ import DashboardStats from "./pages/DashboardStats";
 import Admin from "./pages/Admin";
 import ManageUsers from "./pages/ManageUsers";
 import Settings from "./pages/Settings";
+import ApiKeys from "./pages/ApiKeys";
+import ApiDocumentationPage from "./pages/ApiDocumentation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +36,8 @@ const App = () => (
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/users" element={<ManageUsers />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/api-keys" element={<ApiKeys />} />
+            <Route path="/api-documentation" element={<ApiDocumentationPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

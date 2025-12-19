@@ -69,7 +69,7 @@ serve(async (req) => {
     if (profile?.subscription_plan === "free") {
       return new Response(
         JSON.stringify({ 
-          error: "API Keys are only available for Pro and Enterprise plans. Please upgrade your subscription." 
+          error: "API Keys are only available for Basic and Pro plans. Please upgrade your subscription." 
         }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

@@ -9,9 +9,12 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
-  Shield
+  Shield,
+  Key,
+  BookOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 interface SidebarProps {
@@ -24,6 +27,8 @@ interface MenuItem {
   label: string;
   path: string;
   adminOnly?: boolean;
+  badge?: string;
+  badgeVariant?: 'default' | 'secondary' | 'destructive' | 'outline';
 }
 
 export function Sidebar({ isAdmin = false, onSignOut }: SidebarProps) {
@@ -34,6 +39,8 @@ export function Sidebar({ isAdmin = false, onSignOut }: SidebarProps) {
   const menuItems: MenuItem[] = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/stats' },
     { icon: ImagePlus, label: 'Optimisasi Gambar', path: '/dashboard' },
+    { icon: Key, label: 'API Keys', path: '/api-keys', badge: 'Basic+', badgeVariant: 'default' },
+    { icon: BookOpen, label: 'Dokumentasi API', path: '/api-documentation', badge: 'New', badgeVariant: 'secondary' },
     { icon: Users, label: 'Kelola User', path: '/admin/users', adminOnly: true },
     { icon: Shield, label: 'Admin Panel', path: '/admin', adminOnly: true },
     { icon: Settings, label: 'Pengaturan', path: '/settings' },
@@ -103,7 +110,17 @@ export function Sidebar({ isAdmin = false, onSignOut }: SidebarProps) {
               >
                 <Icon className={cn('h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0', active && 'text-primary')} />
                 {!collapsed && (
-                  <span className="text-xs sm:text-sm">{item.label}</span>
+                  <div className="flex items-center justify-between flex-1 gap-2">
+                    <span className="text-xs sm:text-sm">{item.label}</span>
+                    {item.badge && (
+                      <Badge 
+                        variant={item.badgeVariant || 'default'} 
+                        className="text-[10px] px-1.5 py-0 h-4"
+                      >
+                        {item.badge}
+                      </Badge>
+                    )}
+                  </div>
                 )}
               </button>
             );
