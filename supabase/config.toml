@@ -1,0 +1,33 @@
+project_id = "dcfnvebphjuwtlfuudcd"
+
+[functions.classify-image]
+verify_jwt = false
+
+[functions.generate-enhanced-image]
+verify_jwt = false
+
+[functions.get-presigned-url]
+verify_jwt = false
+
+[functions.verify-captcha]
+verify_jwt = false
+
+[functions.send-verification-email]
+verify_jwt = false
+
+[auth]
+site_url = "https://ai-magic-photo.lovable.app"
+additional_redirect_urls = [
+  "https://ai-magic-photo.lovable.app/**",
+  "https://ai-magic-photo.lovable.app/auth/callback",
+  "https://ai-magic-photo.lovable.app/dashboard"
+]
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true
+
+[auth.email.template.confirmation]
+subject = "Confirm your email - EnhanceAI"
+content_path = "./supabase/templates/confirmation.html"
