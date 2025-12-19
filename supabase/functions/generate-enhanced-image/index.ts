@@ -564,5 +564,223 @@ function buildEnhancementPrompt(enhancement: { id: string; title: string; descri
     return `turn this into a lifestyle product photo showing the product being used/worn in a natural, everyday setting. The model should look relaxed and natural. Soft natural lighting with a lifestyle background (e.g., cafe, outdoor, home setting). Professional lifestyle photography style.`;
   }
 
+  /* ============================
+     AI PHOTOGRAPHER (PERSON)
+     ============================ */
+  
+  // Virtual Outfit Change
+  if (titleLower.includes('virtual outfit') || titleLower.includes('ganti baju')) {
+    return `Change the person's outfit to a stylish, modern clothing. Keep the person's face, pose, and background exactly the same. Only change the clothing to something fashionable and appropriate. Professional portrait photography style.`;
+  }
+  
+  // Pose Variation
+  if (titleLower.includes('ubah pose') || titleLower.includes('pose variation')) {
+    return `Change the person's pose to a more dynamic and professional pose. Keep the person's face and clothing the same. The new pose should be natural and suitable for professional photography. Studio lighting.`;
+  }
+  
+  // Background Change
+  if (titleLower.includes('ganti background') && titleLower.includes('🌆')) {
+    return `Change the background to a professional, aesthetic background. Keep the person exactly the same. Use a clean, modern background that complements the subject. Professional portrait photography.`;
+  }
+  
+  // Professional Portrait Enhancement
+  if (titleLower.includes('professional portrait enhancement')) {
+    return `Enhance this portrait to professional photography standards. Improve lighting, color grading, and overall quality. Make it suitable for professional use (LinkedIn, resume, business card). Studio portrait style.`;
+  }
+  
+  // Beauty Enhancement
+  if (titleLower.includes('beauty enhancement') || titleLower.includes('smooth skin')) {
+    return `Apply professional beauty retouching. Smooth skin naturally, enhance features subtly, improve skin tone. Keep it natural-looking, not over-processed. Professional beauty photography style.`;
+  }
+  
+  // Expression Change
+  if (titleLower.includes('ubah ekspresi') || titleLower.includes('ekspresi wajah')) {
+    return `Change the person's facial expression to a warm, friendly smile. Keep everything else the same. The expression should look natural and genuine. Professional portrait photography.`;
+  }
+  
+  // Business Portrait
+  if (titleLower.includes('business portrait')) {
+    return `Transform this into a professional business portrait. Professional attire, clean background, confident pose, studio lighting. Suitable for LinkedIn, corporate website, or business card.`;
+  }
+  
+  // Fashion Editorial
+  if (titleLower.includes('fashion editorial')) {
+    return `Transform this into a high-fashion editorial style photo. Dramatic lighting, artistic composition, fashion-forward styling. Magazine-quality fashion photography.`;
+  }
+  
+  // Cinematic Look
+  if (titleLower.includes('cinematic')) {
+    return `Apply cinematic color grading and lighting. Create a movie-like atmosphere with dramatic lighting and professional color correction. Film photography aesthetic.`;
+  }
+  
+  // Studio Portrait with Professional Lighting
+  if (titleLower.includes('studio portrait') && titleLower.includes('lighting profesional')) {
+    return `Transform this into a professional studio portrait with perfect lighting. Use three-point lighting setup, clean background, professional color grading. High-end portrait photography.`;
+  }
+
+  /* ============================
+     INTERIOR DESIGN
+     ============================ */
+  
+  // Virtual Staging
+  if (titleLower.includes('virtual staging') || titleLower.includes('tambah furniture')) {
+    return `Add professional furniture and decor to this empty room. Create a fully staged, inviting interior space. Use modern, stylish furniture that fits the room's proportions. Professional interior design staging.`;
+  }
+  
+  // Style Transformation
+  if (titleLower.includes('style transformation')) {
+    if (titleLower.includes('modern')) {
+      return `Transform this interior into a modern style. Clean lines, minimalist furniture, neutral colors with accent pieces. Contemporary interior design.`;
+    } else if (titleLower.includes('minimalist')) {
+      return `Transform this interior into a minimalist style. Simple, functional furniture, neutral color palette, uncluttered space. Scandinavian-inspired minimalism.`;
+    } else if (titleLower.includes('classic')) {
+      return `Transform this interior into a classic/traditional style. Elegant furniture, rich colors, ornate details. Timeless classic interior design.`;
+    }
+    return `Transform this interior with a cohesive design style. Professional interior design with matching furniture, colors, and decor.`;
+  }
+  
+  // Color Scheme Change
+  if (titleLower.includes('ubah color scheme') || titleLower.includes('🌈')) {
+    return `Change the color scheme of this interior. Apply a harmonious, professional color palette. Update walls, furniture, and decor colors while maintaining the room's structure. Professional interior design color coordination.`;
+  }
+  
+  // Lighting Enhancement
+  if (titleLower.includes('lighting enhancement') && titleLower.includes('💡')) {
+    return `Enhance the lighting in this interior. Add natural light, improve artificial lighting, create a warm and inviting atmosphere. Professional interior lighting design.`;
+  }
+  
+  // Wallpaper/Paint Change
+  if (titleLower.includes('wallpaper') || titleLower.includes('cat dinding')) {
+    return `Change the wall treatment in this interior. Apply new wallpaper or paint color that enhances the space. Professional interior wall design.`;
+  }
+  
+  // Add Decoration & Artwork
+  if (titleLower.includes('dekorasi') || titleLower.includes('artwork')) {
+    return `Add tasteful decorations and artwork to this interior. Include wall art, decorative objects, and accessories that enhance the space. Professional interior styling.`;
+  }
+  
+  // Add Plants
+  if (titleLower.includes('tanaman hias') || titleLower.includes('🌿')) {
+    return `Add indoor plants and greenery to this interior. Place plants strategically to enhance the space and create a fresh, natural atmosphere. Professional interior plant styling.`;
+  }
+  
+  // Luxury Upgrade
+  if (titleLower.includes('luxury') && titleLower.includes('interior')) {
+    return `Transform this interior into a luxury space. High-end furniture, premium materials, elegant decor, sophisticated color palette. Luxury interior design.`;
+  }
+  
+  // Scandinavian Style
+  if (titleLower.includes('scandinavian')) {
+    return `Transform this interior into Scandinavian style. Light wood, white walls, minimalist furniture, cozy textiles, natural light. Nordic interior design.`;
+  }
+  
+  // Industrial Style
+  if (titleLower.includes('industrial')) {
+    return `Transform this interior into industrial style. Exposed brick, metal elements, concrete, vintage furniture, Edison bulbs. Urban industrial design.`;
+  }
+  
+  // Bohemian Style
+  if (titleLower.includes('bohemian')) {
+    return `Transform this interior into bohemian style. Colorful textiles, eclectic furniture, plants, artistic decor, layered textures. Boho interior design.`;
+  }
+
+  /* ============================
+     EXTERIOR / ARCHITECTURE
+     ============================ */
+  
+  // Facade Renovation
+  if (titleLower.includes('facade renovation') || titleLower.includes('tampilan depan')) {
+    return `Renovate the facade of this building. Modernize the exterior appearance with updated materials, colors, and architectural details. Professional architectural renovation.`;
+  }
+  
+  // Landscaping Enhancement
+  if (titleLower.includes('landscaping') || titleLower.includes('taman')) {
+    return `Add professional landscaping to this property. Include lawn, trees, shrubs, flowers, and garden design. Create an attractive, well-maintained landscape. Professional landscape architecture.`;
+  }
+  
+  // Time of Day Change
+  if (titleLower.includes('ubah waktu')) {
+    if (titleLower.includes('night')) {
+      return `Transform this exterior to nighttime. Add outdoor lighting, illuminated windows, evening atmosphere. Professional architectural night photography.`;
+    } else if (titleLower.includes('golden hour')) {
+      return `Transform this exterior to golden hour lighting. Warm, soft sunlight, long shadows, beautiful sky. Professional architectural photography at sunset.`;
+    }
+    return `Change the time of day for this exterior photo. Adjust lighting and atmosphere accordingly. Professional architectural photography.`;
+  }
+  
+  // Weather Change
+  if (titleLower.includes('ubah cuaca')) {
+    if (titleLower.includes('sunny')) {
+      return `Change the weather to sunny. Clear blue sky, bright sunlight, vibrant colors. Beautiful weather for architectural photography.`;
+    } else if (titleLower.includes('cloudy')) {
+      return `Change the weather to partly cloudy. Soft, diffused light, interesting cloud formations. Professional architectural photography.`;
+    }
+    return `Improve the weather conditions in this exterior photo. Create ideal conditions for architectural photography.`;
+  }
+  
+  // Exterior Paint Color
+  if (titleLower.includes('warna cat eksterior')) {
+    return `Change the exterior paint color of this building. Apply a fresh, attractive color scheme that enhances the architecture. Professional exterior color design.`;
+  }
+  
+  // Windows & Doors Upgrade
+  if (titleLower.includes('jendela') || titleLower.includes('pintu')) {
+    return `Upgrade the windows and doors of this building. Install modern, attractive windows and doors that enhance the facade. Professional architectural upgrade.`;
+  }
+  
+  // Outdoor Lighting
+  if (titleLower.includes('outdoor lighting')) {
+    return `Add professional outdoor lighting to this property. Include pathway lights, accent lighting, security lights. Create an attractive nighttime appearance. Professional landscape lighting design.`;
+  }
+  
+  // Pool/Water Feature
+  if (titleLower.includes('pool') || titleLower.includes('water feature')) {
+    return `Add a swimming pool or water feature to this property. Design it to complement the architecture and landscape. Professional pool and water feature design.`;
+  }
+  
+  // Driveway & Parking
+  if (titleLower.includes('driveway') || titleLower.includes('parking')) {
+    return `Add or improve the driveway and parking area. Professional paving, landscaping borders, attractive design. Professional hardscape design.`;
+  }
+  
+  // Garden & Flowers
+  if (titleLower.includes('garden') || titleLower.includes('flowers')) {
+    return `Add beautiful gardens and flower beds to this property. Colorful flowers, well-designed garden beds, professional landscaping. Professional garden design.`;
+  }
+  
+  // Modern Architecture
+  if (titleLower.includes('modern architecture')) {
+    return `Transform this building into modern architectural style. Clean lines, contemporary materials, minimalist design. Modern architecture.`;
+  }
+  
+  // Classic Architecture
+  if (titleLower.includes('classic architecture')) {
+    return `Transform this building into classic architectural style. Traditional details, elegant proportions, timeless design. Classic architecture.`;
+  }
+
+  /* ============================
+     PRODUCT ENHANCEMENTS
+     ============================ */
+  
+  // 360° View
+  if (titleLower.includes('360') || titleLower.includes('view')) {
+    return `Generate additional angles of this product to create a 360° view. Show the product from different perspectives (front, side, back, top). Professional product photography from multiple angles.`;
+  }
+  
+  // Color Variants
+  if (titleLower.includes('varian warna') || titleLower.includes('color variant')) {
+    return `Create color variants of this product. Generate the same product in different colors (black, white, red, blue, etc.). Keep the product design identical, only change the color. Professional product photography.`;
+  }
+  
+  // Material/Texture Change
+  if (titleLower.includes('material') || titleLower.includes('tekstur')) {
+    return `Change the material or texture of this product. Transform it to different materials (leather, fabric, metal, wood, etc.) while keeping the same design. Professional product visualization.`;
+  }
+  
+  // Size Comparison
+  if (titleLower.includes('size comparison')) {
+    return `Create a size comparison visualization for this product. Show the product next to common reference objects or with measurements indicated. Help customers understand the product's actual size. Professional product photography with scale reference.`;
+  }
+
   return basePrompts[enhancement.id] || `${enhancement.title}: ${enhancement.description}. Apply this enhancement professionally for e-commerce product photography.`;
 }

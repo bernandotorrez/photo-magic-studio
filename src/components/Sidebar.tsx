@@ -12,7 +12,11 @@ import {
   Shield,
   Key,
   BookOpen,
-  Info
+  Info,
+  Camera,
+  Home,
+  Building2,
+  Shirt
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -42,13 +46,37 @@ export function Sidebar({ isAdmin = false, onSignOut }: SidebarProps) {
   const menuItems: MenuItem[] = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/stats' },
     { 
-      icon: ImagePlus, 
-      label: 'Optimisasi Gambar', 
+      icon: Shirt, 
+      label: 'Fashion & Product', 
       path: '/dashboard',
-      info: 'Optimasi gambar untuk produk e-commerce seperti baju, jaket, sweater, dress, celana, sepatu, tas, dompet, aksesoris, jam tangan, kalung, gelang, cincin, topi, kacamata, dan produk fashion lainnya.'
+      info: 'Optimasi gambar untuk produk fashion seperti baju, sepatu, tas, aksesoris, jam tangan, kalung, gelang, cincin, topi, kacamata, dan produk wearable lainnya.'
+    },
+    { 
+      icon: Camera, 
+      label: 'AI Photographer', 
+      path: '/ai-photographer',
+      badge: 'New',
+      badgeVariant: 'secondary',
+      info: 'AI untuk foto portrait - ganti outfit, ubah pose, ganti background, beauty enhancement, dan professional portrait editing.'
+    },
+    { 
+      icon: Home, 
+      label: 'Interior Design', 
+      path: '/interior-design',
+      badge: 'New',
+      badgeVariant: 'secondary',
+      info: 'AI untuk interior design - virtual staging, style transformation, color scheme, lighting, dan furniture placement.'
+    },
+    { 
+      icon: Building2, 
+      label: 'Exterior Design', 
+      path: '/exterior-design',
+      badge: 'New',
+      badgeVariant: 'secondary',
+      info: 'AI untuk exterior & architecture - facade renovation, landscaping, time of day change, weather effects, dan architectural visualization.'
     },
     { icon: Key, label: 'API Keys', path: '/api-keys', badge: 'Basic+', badgeVariant: 'default' },
-    { icon: BookOpen, label: 'Dokumentasi API', path: '/api-documentation', badge: 'New', badgeVariant: 'secondary' },
+    { icon: BookOpen, label: 'Dokumentasi API', path: '/api-documentation' },
     { icon: Users, label: 'Kelola User', path: '/admin/users', adminOnly: true },
     { icon: Shield, label: 'Admin Panel', path: '/admin', adminOnly: true },
     { icon: Settings, label: 'Pengaturan', path: '/settings' },

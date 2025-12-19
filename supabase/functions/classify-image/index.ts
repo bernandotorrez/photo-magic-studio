@@ -73,6 +73,14 @@ serve(async (req) => {
           } else if (topLabel.includes('bag') || topLabel.includes('watch') || topLabel.includes('sunglasses') ||
                      topLabel.includes('hat') || topLabel.includes('tie')) {
             category = 'accessories';
+          } else if (topLabel.includes('person') || topLabel.includes('face') || topLabel.includes('people')) {
+            category = 'person';
+          } else if (topLabel.includes('room') || topLabel.includes('furniture') || topLabel.includes('interior') ||
+                     topLabel.includes('living') || topLabel.includes('bedroom') || topLabel.includes('kitchen')) {
+            category = 'interior';
+          } else if (topLabel.includes('house') || topLabel.includes('building') || topLabel.includes('exterior') ||
+                     topLabel.includes('facade') || topLabel.includes('architecture')) {
+            category = 'exterior';
           }
         }
       } else {
@@ -97,30 +105,112 @@ serve(async (req) => {
     ];
 
     /* ============================
-       WEARABLE & MODEL LOGIC
+       CATEGORY-SPECIFIC ENHANCEMENTS
        ============================ */
 
-    // For product category (default), assume it could be wearable
-    // Show all model options to give users flexibility
-    const HUMAN_MODEL_OPTIONS = [
-      'Dipakai oleh Model Wanita',
-      'Dipakai oleh Model Wanita Berhijab',
-      'Dipakai oleh Model Pria',
-      'Foto Lifestyle dengan Model',
-    ];
+    let enhancementStrings: string[] = [];
 
-    const ADDITIONAL_MODEL_OPTIONS = [
-      'Ditampilkan pada Manekin',
-      'Foto Close-up saat Dipakai',
-      'Dipakai di Bagian Tubuh (Leher/Tangan/Pergelangan)',
-    ];
+    // WEARABLE PRODUCTS (clothing, shoes, accessories)
+    if (['clothing', 'shoes', 'accessories', 'product'].includes(category)) {
+      const HUMAN_MODEL_OPTIONS = [
+        'Dipakai oleh Model Wanita',
+        'Dipakai oleh Model Wanita Berhijab',
+        'Dipakai oleh Model Pria',
+        'Foto Lifestyle dengan Model',
+      ];
 
-    // Combine all options: model options first, then base enhancements
-    const enhancementStrings = [
-      ...HUMAN_MODEL_OPTIONS,
-      ...ADDITIONAL_MODEL_OPTIONS,
-      ...baseEnhancementOptions,
-    ];
+      const ADDITIONAL_MODEL_OPTIONS = [
+        'Ditampilkan pada Manekin',
+        'Foto Close-up saat Dipakai',
+        'Dipakai di Bagian Tubuh (Leher/Tangan/Pergelangan)',
+      ];
+
+      const PRODUCT_ENHANCEMENTS = [
+        'Generate 360° View',
+        'Buat Varian Warna',
+        'Ubah Material/Tekstur',
+        'Tampilkan Size Comparison',
+      ];
+
+      enhancementStrings = [
+        ...HUMAN_MODEL_OPTIONS,
+        ...ADDITIONAL_MODEL_OPTIONS,
+        ...PRODUCT_ENHANCEMENTS,
+        ...baseEnhancementOptions,
+      ];
+    }
+    
+    // PERSON / PORTRAIT
+    else if (category === 'person') {
+      const AI_PHOTOGRAPHER_OPTIONS = [
+        '🎨 Virtual Outfit Change (Ganti Baju)',
+        '💃 Ubah Pose (Pose Variation)',
+        '🌆 Ganti Background',
+        '📸 Professional Portrait Enhancement',
+        '✨ Beauty Enhancement (Smooth Skin)',
+        '🎭 Ubah Ekspresi Wajah',
+        '💼 Business Portrait Style',
+        '🌟 Fashion Editorial Style',
+        '🎬 Cinematic Look',
+        '🖼️ Studio Portrait dengan Lighting Profesional',
+      ];
+
+      enhancementStrings = [
+        ...AI_PHOTOGRAPHER_OPTIONS,
+        ...baseEnhancementOptions,
+      ];
+    }
+    
+    // INTERIOR DESIGN
+    else if (category === 'interior') {
+      const INTERIOR_DESIGN_OPTIONS = [
+        '🛋️ Virtual Staging (Tambah Furniture)',
+        '🎨 Style Transformation (Modern/Minimalist/Classic)',
+        '🌈 Ubah Color Scheme',
+        '💡 Lighting Enhancement',
+        '🪟 Ubah Wallpaper/Cat Dinding',
+        '🖼️ Tambah Dekorasi & Artwork',
+        '🌿 Tambah Tanaman Hias',
+        '✨ Luxury Interior Upgrade',
+        '🏠 Scandinavian Style',
+        '🎭 Industrial Style',
+        '🌸 Bohemian Style',
+        '🏛️ Classic/Traditional Style',
+      ];
+
+      enhancementStrings = [
+        ...INTERIOR_DESIGN_OPTIONS,
+        ...baseEnhancementOptions,
+      ];
+    }
+    
+    // EXTERIOR / ARCHITECTURE
+    else if (category === 'exterior') {
+      const EXTERIOR_DESIGN_OPTIONS = [
+        '🏠 Facade Renovation (Ubah Tampilan Depan)',
+        '🌳 Landscaping Enhancement (Taman & Tanaman)',
+        '🌅 Ubah Waktu (Day/Night/Golden Hour)',
+        '⛅ Ubah Cuaca (Sunny/Cloudy/Rainy)',
+        '🎨 Ubah Warna Cat Eksterior',
+        '🪟 Upgrade Jendela & Pintu',
+        '💡 Tambah Outdoor Lighting',
+        '🏊 Tambah Pool/Water Feature',
+        '🚗 Tambah Driveway & Parking',
+        '🌺 Tambah Garden & Flowers',
+        '🏗️ Modern Architecture Style',
+        '🏛️ Classic Architecture Style',
+      ];
+
+      enhancementStrings = [
+        ...EXTERIOR_DESIGN_OPTIONS,
+        ...baseEnhancementOptions,
+      ];
+    }
+    
+    // DEFAULT (other categories)
+    else {
+      enhancementStrings = baseEnhancementOptions;
+    }
 
     return new Response(
       JSON.stringify({
