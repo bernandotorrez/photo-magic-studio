@@ -215,7 +215,7 @@ Pilih enhancement yang sesuai dengan kebutuhan:
 **Solusi:**
 - Tunggu 1 menit sebelum request lagi
 - Implementasikan delay antar requests
-- Upgrade ke Enterprise untuk rate limit lebih tinggi
+- Upgrade ke Pro untuk rate limit lebih tinggi
 
 ### ❌ Error: "Image generation timed out"
 

@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { 
   Zap,
   History, 
@@ -147,7 +148,15 @@ export default function DashboardNew() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="generate">
+          <TabsContent value="generate" className="space-y-4">
+            <Alert className="border-blue-500/50 bg-blue-500/5">
+              <ImageIcon className="h-4 w-4 text-blue-500" />
+              <AlertTitle className="text-blue-500">Produk yang Didukung</AlertTitle>
+              <AlertDescription>
+                Optimasi gambar untuk produk e-commerce seperti <strong>baju, jaket, sweater, dress, celana, sepatu, tas, dompet, aksesoris, jam tangan, kalung, gelang, cincin, topi, kacamata</strong>, dan produk fashion lainnya.
+              </AlertDescription>
+            </Alert>
+
             <Card>
               <CardHeader className="px-4 sm:px-6 py-4 sm:py-6">
                 <CardTitle className="flex items-center gap-2 text-base sm:text-lg">

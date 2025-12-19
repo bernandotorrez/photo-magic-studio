@@ -135,6 +135,83 @@ x-api-key: eak_your_api_key_here
 }
 ```
 
+### 2. Check Generation Status
+
+Check status dari task generation yang sedang berjalan.
+
+**Endpoint:** `POST /api-check-status`
+
+**Headers:**
+```
+Content-Type: application/json
+x-api-key: eak_your_api_key_here
+```
+
+**Request Body:**
+
+```json
+{
+  "taskId": "task_123456"
+}
+```
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `taskId` | string | Yes | Task ID yang didapat dari response `/api-generate` |
+
+**Response Success (200) - Task Completed:**
+
+```json
+{
+  "taskId": "task_123456",
+  "state": "success",
+  "success": true,
+  "generatedImageUrl": "https://example.com/generated.png",
+  "resultUrls": ["https://example.com/generated.png"]
+}
+```
+
+**Response Success (200) - Task Processing:**
+
+```json
+{
+  "taskId": "task_123456",
+  "state": "processing",
+  "success": false,
+  "status": "processing",
+  "message": "Task is still processing"
+}
+```
+
+**Response Success (200) - Task Failed:**
+
+```json
+{
+  "taskId": "task_123456",
+  "state": "fail",
+  "success": false,
+  "error": "Generation failed"
+}
+```
+
+**Response Error (400 - Bad Request):**
+
+```json
+{
+  "error": "taskId is required"
+}
+```
+
+**Response Error (401 - Unauthorized):**
+
+```json
+{
+  "error": "Invalid API key"
+}
+```
+
 ## Rate Limits
 
 - **Free Plan:** Tidak ada akses API
@@ -159,6 +236,7 @@ curl -X POST https://[your-project-id].supabase.co/functions/v1/api-generate \
 ### JavaScript (Fetch)
 
 ```javascript
+// Generate image
 const response = await fetch('https://[your-project-id].supabase.co/functions/v1/api-generate', {
   method: 'POST',
   headers: {
@@ -177,7 +255,27 @@ const response = await fetch('https://[your-project-id].supabase.co/functions/v1
 });
 
 const data = await response.json();
-console.log(data.generatedImageUrl);
+console.log('Generated:', data.generatedImageUrl);
+console.log('Task ID:', data.taskId);
+
+// Check status (optional - if you want to poll)
+const checkStatus = async (taskId) => {
+  const statusResponse = await fetch('https://[your-project-id].supabase.co/functions/v1/api-check-status', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': 'eak_your_api_key_here'
+    },
+    body: JSON.stringify({ taskId })
+  });
+  
+  const statusData = await statusResponse.json();
+  return statusData;
+};
+
+// Usage
+const status = await checkStatus(data.taskId);
+console.log('Status:', status);
 ```
 
 ### Python
@@ -306,7 +404,7 @@ generateImage();
 
 ### Error: "Rate limit exceeded"
 - Implementasikan delay antar requests
-- Upgrade ke paket Enterprise untuk rate limit lebih tinggi
+- Upgrade ke paket Pro untuk rate limit lebih tinggi
 - Gunakan queue system untuk batch processing
 
 ## Support

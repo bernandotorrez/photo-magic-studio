@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Play, CheckCircle2, XCircle } from 'lucide-react';
+import { Loader2, Play, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
@@ -92,6 +92,13 @@ export default function ApiPlayground() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <Alert className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Perhatian:</strong> Test di playground ini akan mengurangi kuota generation bulanan Anda.
+            </AlertDescription>
+          </Alert>
+
           <div className="space-y-2">
             <Label htmlFor="api-key">API Key</Label>
             <Input

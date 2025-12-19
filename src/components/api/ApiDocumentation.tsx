@@ -311,6 +311,85 @@ export default function ApiDocumentation() {
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>POST /api-check-status</CardTitle>
+              <CardDescription>Check status of generation task</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <h4 className="font-semibold mb-2">Request:</h4>
+                <CodeBlock
+                  language="bash"
+                  label="Check Status Request"
+                  code={`curl -X POST ${SUPABASE_URL}/functions/v1/api-check-status \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: eak_your_api_key" \\
+  -d '{
+    "taskId": "task_123456"
+  }'`}
+                />
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-2">Parameters:</h4>
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className="text-left p-3">Parameter</th>
+                        <th className="text-left p-3">Type</th>
+                        <th className="text-left p-3">Required</th>
+                        <th className="text-left p-3">Description</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-t">
+                        <td className="p-3 font-mono">taskId</td>
+                        <td className="p-3">string</td>
+                        <td className="p-3"><Badge variant="destructive">Yes</Badge></td>
+                        <td className="p-3">Task ID dari response api-generate</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-2">Success Response (200):</h4>
+                <CodeBlock
+                  language="json"
+                  label="Status Response"
+                  code={`// Task completed successfully
+{
+  "taskId": "task_123456",
+  "state": "success",
+  "success": true,
+  "generatedImageUrl": "https://example.com/generated.png",
+  "resultUrls": ["https://example.com/generated.png"]
+}
+
+// Task still processing
+{
+  "taskId": "task_123456",
+  "state": "processing",
+  "success": false,
+  "status": "processing",
+  "message": "Task is still processing"
+}
+
+// Task failed
+{
+  "taskId": "task_123456",
+  "state": "fail",
+  "success": false,
+  "error": "Generation failed"
+}`}
+                />
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Examples Tab */}

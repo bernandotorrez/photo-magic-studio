@@ -11,10 +11,12 @@ import {
   LogOut,
   Shield,
   Key,
-  BookOpen
+  BookOpen,
+  Info
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
 interface SidebarProps {
@@ -29,6 +31,7 @@ interface MenuItem {
   adminOnly?: boolean;
   badge?: string;
   badgeVariant?: 'default' | 'secondary' | 'destructive' | 'outline';
+  info?: string;
 }
 
 export function Sidebar({ isAdmin = false, onSignOut }: SidebarProps) {
@@ -38,7 +41,12 @@ export function Sidebar({ isAdmin = false, onSignOut }: SidebarProps) {
 
   const menuItems: MenuItem[] = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/stats' },
-    { icon: ImagePlus, label: 'Optimisasi Gambar', path: '/dashboard' },
+    { 
+      icon: ImagePlus, 
+      label: 'Optimisasi Gambar', 
+      path: '/dashboard',
+      info: 'Optimasi gambar untuk produk e-commerce seperti baju, jaket, sweater, dress, celana, sepatu, tas, dompet, aksesoris, jam tangan, kalung, gelang, cincin, topi, kacamata, dan produk fashion lainnya.'
+    },
     { icon: Key, label: 'API Keys', path: '/api-keys', badge: 'Basic+', badgeVariant: 'default' },
     { icon: BookOpen, label: 'Dokumentasi API', path: '/api-documentation', badge: 'New', badgeVariant: 'secondary' },
     { icon: Users, label: 'Kelola User', path: '/admin/users', adminOnly: true },
@@ -98,31 +106,49 @@ export function Sidebar({ isAdmin = false, onSignOut }: SidebarProps) {
             const active = isActive(item.path);
             
             return (
-              <button
-                key={item.path}
-                onClick={() => handleNavigation(item.path)}
-                className={cn(
-                  'w-full flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg transition-colors text-left',
-                  'hover:bg-accent hover:text-accent-foreground',
-                  active && 'bg-secondary text-secondary-foreground font-medium',
-                  collapsed && 'lg:justify-center'
-                )}
-              >
-                <Icon className={cn('h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0', active && 'text-primary')} />
-                {!collapsed && (
-                  <div className="flex items-center justify-between flex-1 gap-2">
-                    <span className="text-xs sm:text-sm">{item.label}</span>
-                    {item.badge && (
-                      <Badge 
-                        variant={item.badgeVariant || 'default'} 
-                        className="text-[10px] px-1.5 py-0 h-4"
-                      >
-                        {item.badge}
-                      </Badge>
-                    )}
-                  </div>
-                )}
-              </button>
+              <div key={item.path} className="relative group">
+                <button
+                  onClick={() => handleNavigation(item.path)}
+                  className={cn(
+                    'w-full flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg transition-colors text-left',
+                    'hover:bg-accent hover:text-accent-foreground',
+                    active && 'bg-secondary text-secondary-foreground font-medium',
+                    collapsed && 'lg:justify-center'
+                  )}
+                >
+                  <Icon className={cn('h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0', active && 'text-primary')} />
+                  {!collapsed && (
+                    <div className="flex items-center justify-between flex-1 gap-2">
+                      <span className="text-xs sm:text-sm">{item.label}</span>
+                      <div className="flex items-center gap-1">
+                        {item.badge && (
+                          <Badge 
+                            variant={item.badgeVariant || 'default'} 
+                            className="text-[10px] px-1.5 py-0 h-4"
+                          >
+                            {item.badge}
+                          </Badge>
+                        )}
+                        {item.info && (
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button
+                                onClick={(e) => e.stopPropagation()}
+                                className="p-0.5 hover:bg-accent rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <Info className="h-3 w-3 text-muted-foreground" />
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-64 text-sm" side="right">
+                              <p className="text-muted-foreground">{item.info}</p>
+                            </PopoverContent>
+                          </Popover>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </button>
+              </div>
             );
           })}
         </div>
