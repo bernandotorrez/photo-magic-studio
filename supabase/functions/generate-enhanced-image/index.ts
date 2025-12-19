@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { imageUrl, originalImagePath, imagePath, enhancement, classification, watermark, debugMode } = await req.json();
+    const { imageUrl, originalImagePath, imagePath, enhancement, classification, watermark, customPose, customFurniture, debugMode } = await req.json();
     
     // Get user ID and email from authorization header
     const authHeader = req.headers.get('authorization');
@@ -111,9 +111,9 @@ serve(async (req) => {
         id: 'custom', 
         title: enhancement, 
         description: enhancement 
-      });
+      }, customPose, customFurniture);
     } else {
-      enhancementPrompt = buildEnhancementPrompt(enhancement);
+      enhancementPrompt = buildEnhancementPrompt(enhancement, customPose, customFurniture);
     }
 
     // Use KIE AI API
@@ -469,7 +469,7 @@ serve(async (req) => {
   }
 });
 
-function buildEnhancementPrompt(enhancement: { id: string; title: string; description: string }): string {
+function buildEnhancementPrompt(enhancement: { id: string; title: string; description: string }, customPose?: string, customFurniture?: string): string {
   // Model assets URLs from Supabase storage
   const modelAssets = {
     male: 'https://dcfnvebphjuwtlfuudcd.supabase.co/storage/v1/object/public/model-assets/model_male.png',
@@ -575,7 +575,10 @@ function buildEnhancementPrompt(enhancement: { id: string; title: string; descri
   
   // Pose Variation
   if (titleLower.includes('ubah pose') || titleLower.includes('pose variation')) {
-    return `Change the person's pose to a more dynamic and professional pose. Keep the person's face and clothing the same. The new pose should be natural and suitable for professional photography. Studio lighting.`;
+    const poseInstruction = customPose 
+      ? `Change the person's pose to: ${customPose}. Keep the person's face and clothing the same. The pose should be natural and suitable for professional photography. Studio lighting.`
+      : `Change the person's pose to a more dynamic and professional pose. Keep the person's face and clothing the same. The new pose should be natural and suitable for professional photography. Studio lighting.`;
+    return poseInstruction;
   }
   
   // Background Change
@@ -624,7 +627,10 @@ function buildEnhancementPrompt(enhancement: { id: string; title: string; descri
   
   // Virtual Staging
   if (titleLower.includes('virtual staging') || titleLower.includes('tambah furniture')) {
-    return `Add professional furniture and decor to this empty room. Create a fully staged, inviting interior space. Use modern, stylish furniture that fits the room's proportions. Professional interior design staging.`;
+    const furnitureInstruction = customFurniture
+      ? `Add the following furniture and decor items to this room: ${customFurniture}. Create a fully staged, inviting interior space. Use modern, stylish furniture that fits the room's proportions. Professional interior design staging.`
+      : `Add professional furniture and decor to this empty room. Create a fully staged, inviting interior space. Use modern, stylish furniture that fits the room's proportions. Professional interior design staging.`;
+    return furnitureInstruction;
   }
   
   // Style Transformation

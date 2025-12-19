@@ -334,7 +334,7 @@ export default function UserApiGuide() {
                   code={`// Simpan API key di environment variable
 const API_KEY = process.env.API_KEY;
 
-async function generateImage(imageUrl, enhancement) {
+async function generateImage(imageUrl, enhancement, options = {}) {
   const response = await fetch('${SUPABASE_URL}/functions/v1/api-generate', {
     method: 'POST',
     headers: {
@@ -343,7 +343,8 @@ async function generateImage(imageUrl, enhancement) {
     },
     body: JSON.stringify({
       imageUrl: imageUrl,
-      enhancement: enhancement
+      enhancement: enhancement,
+      ...options
     })
   });
 
@@ -358,10 +359,30 @@ async function generateImage(imageUrl, enhancement) {
   }
 }
 
-// Contoh penggunaan
+// Contoh penggunaan basic
 generateImage(
   'https://example.com/product.jpg',
   'add_female_model'
+);
+
+// ✨ NEW: Contoh dengan custom pose
+generateImage(
+  'https://example.com/portrait.jpg',
+  'ubah pose',
+  {
+    classification: 'person',
+    customPose: 'sitting on a chair, hands on lap, smiling'
+  }
+);
+
+// ✨ NEW: Contoh dengan custom furniture
+generateImage(
+  'https://example.com/empty-room.jpg',
+  'virtual staging',
+  {
+    classification: 'interior',
+    customFurniture: 'sofa modern, meja TV, rak buku, karpet'
+  }
 );`}
                 />
               </div>
@@ -479,8 +500,10 @@ generateImage(
                   { value: 'improve_lighting', label: 'Perbaiki Lighting', desc: 'Tingkatkan pencahayaan' },
                   { value: 'enhance_background', label: 'Enhance Background', desc: 'Background lebih profesional' },
                   { value: 'lifestyle', label: 'Lifestyle Photo', desc: 'Foto lifestyle dengan model' },
+                  { value: 'ubah pose', label: '✨ Custom Pose (NEW)', desc: 'Ubah pose dengan deskripsi spesifik', isNew: true },
+                  { value: 'virtual staging', label: '✨ Custom Furniture (NEW)', desc: 'Tambah furniture spesifik ke ruangan', isNew: true },
                 ].map((item) => (
-                  <div key={item.value} className="p-3 border rounded-lg hover:border-primary transition-colors">
+                  <div key={item.value} className={`p-3 border rounded-lg hover:border-primary transition-colors ${item.isNew ? 'bg-primary/5 border-primary/30' : ''}`}>
                     <code className="text-xs bg-muted px-2 py-1 rounded block mb-2">{item.value}</code>
                     <p className="font-semibold text-sm">{item.label}</p>
                     <p className="text-xs text-muted-foreground">{item.desc}</p>

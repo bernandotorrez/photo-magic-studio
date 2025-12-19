@@ -62,7 +62,7 @@ serve(async (req) => {
     const userEmail = userData?.user?.email;
 
     // Parse request body
-    const { imageUrl, enhancement, classification, watermark } = await req.json();
+    const { imageUrl, enhancement, classification, watermark, customPose, customFurniture } = await req.json();
     
     if (!imageUrl) {
       return new Response(
@@ -108,7 +108,7 @@ serve(async (req) => {
     }
 
     // Build enhancement prompt
-    const enhancementPrompt = buildEnhancementPrompt(enhancement);
+    const enhancementPrompt = buildEnhancementPrompt(enhancement, customPose, customFurniture);
 
     // Build watermark instruction
     let watermarkInstruction = '';
@@ -352,7 +352,7 @@ serve(async (req) => {
   }
 });
 
-function buildEnhancementPrompt(enhancement: string): string {
+function buildEnhancementPrompt(enhancement: string, customPose?: string, customFurniture?: string): string {
   const basePrompts: Record<string, string> = {
     'add_male_model': `turn this product into a professional e-commerce photo with a male model wearing/using it. The model should be in a natural pose. Studio lighting with a clean white or gradient background. Professional product photography style.`,
     'add_female_model': `turn this product into a professional e-commerce photo with a female model wearing/using it. The model should be in a natural pose. Soft studio lighting with a minimalist background. Professional product photography style.`,
@@ -379,6 +379,22 @@ function buildEnhancementPrompt(enhancement: string): string {
   }
   if (titleLower.includes('on-feet') || titleLower.includes('saat dipakai')) {
     return `turn this into a professional product photo showing the shoes being worn on feet. Show the shoes in use with a natural standing pose. Studio lighting with clean background. Professional e-commerce photography style.`;
+  }
+  
+  // AI Photographer - Pose Variation with custom pose
+  if (titleLower.includes('ubah pose') || titleLower.includes('pose variation')) {
+    const poseInstruction = customPose 
+      ? `Change the person's pose to: ${customPose}. Keep the person's face and clothing the same. The pose should be natural and suitable for professional photography. Studio lighting.`
+      : `Change the person's pose to a more dynamic and professional pose. Keep the person's face and clothing the same. The new pose should be natural and suitable for professional photography. Studio lighting.`;
+    return poseInstruction;
+  }
+  
+  // Interior Design - Virtual Staging with custom furniture
+  if (titleLower.includes('virtual staging') || titleLower.includes('tambah furniture')) {
+    const furnitureInstruction = customFurniture
+      ? `Add the following furniture and decor items to this room: ${customFurniture}. Create a fully staged, inviting interior space. Use modern, stylish furniture that fits the room's proportions. Professional interior design staging.`
+      : `Add professional furniture and decor to this empty room. Create a fully staged, inviting interior space. Use modern, stylish furniture that fits the room's proportions. Professional interior design staging.`;
+    return furnitureInstruction;
   }
   if (titleLower.includes('dipakai di bagian tubuh') || 
       titleLower.includes('leher') || 

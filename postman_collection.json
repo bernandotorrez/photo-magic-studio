@@ -1,9 +1,9 @@
 {
   "info": {
     "name": "Photo Enhancement API",
-    "description": "API untuk generate gambar produk dengan AI enhancement",
+    "description": "API untuk generate gambar produk dengan AI enhancement. Version 1.1.0 - Added custom pose and furniture support",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "auth": {
     "type": "apikey",
@@ -217,6 +217,52 @@
               "path": ["api-generate"]
             },
             "description": "Generate foto lifestyle"
+          },
+          "response": []
+        },
+        {
+          "name": "AI Photographer - Custom Pose",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"imageUrl\": \"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d\",\n  \"enhancement\": \"ubah pose\",\n  \"classification\": \"person\",\n  \"customPose\": \"standing with arms crossed, looking confident and professional\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api-generate",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api-generate"]
+            },
+            "description": "Generate AI Photographer dengan custom pose spesifik"
+          },
+          "response": []
+        },
+        {
+          "name": "Interior Design - Custom Furniture",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"imageUrl\": \"https://images.unsplash.com/photo-1484154218962-a197022b5858\",\n  \"enhancement\": \"virtual staging\",\n  \"classification\": \"interior\",\n  \"customFurniture\": \"sofa modern, meja TV minimalis, rak buku, karpet abu-abu, lampu standing\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api-generate",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api-generate"]
+            },
+            "description": "Generate Interior Design dengan custom furniture items"
           },
           "response": []
         }

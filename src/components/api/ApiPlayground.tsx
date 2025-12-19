@@ -15,6 +15,9 @@ export default function ApiPlayground() {
   const [apiKey, setApiKey] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [enhancement, setEnhancement] = useState('add_female_model');
+  const [classification, setClassification] = useState('clothing');
+  const [customPose, setCustomPose] = useState('');
+  const [customFurniture, setCustomFurniture] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -43,16 +46,27 @@ export default function ApiPlayground() {
     setResult(null);
 
     try {
+      const requestBody: any = {
+        imageUrl,
+        enhancement,
+        classification,
+      };
+
+      // Add custom input if provided
+      if (customPose && classification === 'person') {
+        requestBody.customPose = customPose;
+      }
+      if (customFurniture && classification === 'interior') {
+        requestBody.customFurniture = customFurniture;
+      }
+
       const response = await fetch(`${SUPABASE_URL}/functions/v1/api-generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': apiKey,
         },
-        body: JSON.stringify({
-          imageUrl,
-          enhancement,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const data = await response.json();
@@ -124,6 +138,22 @@ export default function ApiPlayground() {
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="classification">Classification</Label>
+            <Select value={classification} onValueChange={setClassification}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="clothing">Clothing (Pakaian)</SelectItem>
+                <SelectItem value="person">Person (AI Photographer)</SelectItem>
+                <SelectItem value="interior">Interior (Interior Design)</SelectItem>
+                <SelectItem value="shoes">Shoes (Sepatu)</SelectItem>
+                <SelectItem value="accessories">Accessories (Aksesoris)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="enhancement">Enhancement Type</Label>
             <Select value={enhancement} onValueChange={setEnhancement}>
               <SelectTrigger>
@@ -138,9 +168,47 @@ export default function ApiPlayground() {
                 <SelectItem value="improve_lighting">Improve Lighting</SelectItem>
                 <SelectItem value="enhance_background">Enhance Background</SelectItem>
                 <SelectItem value="lifestyle">Lifestyle Photo</SelectItem>
+                <SelectItem value="ubah pose">✨ Custom Pose (NEW)</SelectItem>
+                <SelectItem value="virtual staging">✨ Custom Furniture (NEW)</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          {/* Custom Pose Input */}
+          {classification === 'person' && enhancement === 'ubah pose' && (
+            <div className="space-y-2 p-3 border border-primary/30 rounded-lg bg-primary/5">
+              <Label htmlFor="custom-pose" className="flex items-center gap-2">
+                ✨ Custom Pose (Optional)
+              </Label>
+              <Input
+                id="custom-pose"
+                placeholder="e.g., standing with arms crossed, looking confident"
+                value={customPose}
+                onChange={(e) => setCustomPose(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Kosongkan untuk pose random, atau isi untuk pose spesifik
+              </p>
+            </div>
+          )}
+
+          {/* Custom Furniture Input */}
+          {classification === 'interior' && enhancement === 'virtual staging' && (
+            <div className="space-y-2 p-3 border border-primary/30 rounded-lg bg-primary/5">
+              <Label htmlFor="custom-furniture" className="flex items-center gap-2">
+                ✨ Custom Furniture (Optional)
+              </Label>
+              <Input
+                id="custom-furniture"
+                placeholder="e.g., sofa, meja TV, rak buku, karpet"
+                value={customFurniture}
+                onChange={(e) => setCustomFurniture(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Kosongkan untuk furniture random, atau isi item spesifik (pisahkan dengan koma)
+              </p>
+            </div>
+          )}
 
           <Button 
             onClick={handleTest} 

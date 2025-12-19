@@ -56,6 +56,10 @@ export function EnhancementOptions({
   const [watermarkText, setWatermarkText] = useState('');
   const [watermarkLogo, setWatermarkLogo] = useState<File | null>(null);
   const [watermarkLogoPreview, setWatermarkLogoPreview] = useState<string | null>(null);
+  
+  // Custom input state
+  const [customPose, setCustomPose] = useState('');
+  const [customFurniture, setCustomFurniture] = useState('');
 
   const onDropLogo = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -136,6 +140,8 @@ export function EnhancementOptions({
             originalImagePath: imagePath,
             classification,
             enhancement,
+            customPose: customPose || undefined,
+            customFurniture: customFurniture || undefined,
             watermark: watermarkType !== 'none' ? {
               type: watermarkType,
               text: watermarkType === 'text' ? watermarkText : undefined,
@@ -257,6 +263,47 @@ export function EnhancementOptions({
           </div>
         </div>
       </div>
+
+      {/* Custom Input Options */}
+      {(classification === 'person' || classification === 'interior') && (
+        <div className="space-y-3 sm:space-y-4 p-3 sm:p-4 rounded-xl border border-border bg-muted/20">
+          <h3 className="font-medium text-xs sm:text-sm">
+            {classification === 'person' ? 'Custom Pose (Opsional)' : 'Custom Furniture Items (Opsional)'}
+          </h3>
+          
+          {classification === 'person' && (
+            <div className="space-y-2">
+              <Label htmlFor="custom-pose">Deskripsi Pose yang Diinginkan</Label>
+              <Input
+                id="custom-pose"
+                placeholder="Contoh: standing with arms crossed, smiling confidently"
+                value={customPose}
+                onChange={(e) => setCustomPose(e.target.value)}
+                disabled={isGenerating}
+              />
+              <p className="text-xs text-muted-foreground">
+                Kosongkan untuk pose random. Isi untuk pose spesifik yang Anda inginkan.
+              </p>
+            </div>
+          )}
+          
+          {classification === 'interior' && (
+            <div className="space-y-2">
+              <Label htmlFor="custom-furniture">Item Furniture yang Diinginkan</Label>
+              <Input
+                id="custom-furniture"
+                placeholder="Contoh: sofa, meja TV, rak buku, lemari, karpet"
+                value={customFurniture}
+                onChange={(e) => setCustomFurniture(e.target.value)}
+                disabled={isGenerating}
+              />
+              <p className="text-xs text-muted-foreground">
+                Kosongkan untuk furniture otomatis. Isi untuk menentukan item furniture spesifik (pisahkan dengan koma).
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Watermark Options */}
       <div className="space-y-3 sm:space-y-4 p-3 sm:p-4 rounded-xl border border-border bg-muted/20">

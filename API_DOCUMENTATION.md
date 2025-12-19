@@ -48,6 +48,8 @@ x-api-key: eak_your_api_key_here
   "imageUrl": "https://example.com/product-image.jpg",
   "enhancement": "add_female_model",
   "classification": "clothing",
+  "customPose": "standing with arms crossed, smiling confidently",
+  "customFurniture": "sofa, meja TV, rak buku, lemari",
   "watermark": {
     "type": "text",
     "text": "My Brand"
@@ -61,7 +63,9 @@ x-api-key: eak_your_api_key_here
 |-----------|------|----------|-------------|
 | `imageUrl` | string | Yes | URL gambar produk yang akan di-enhance (harus publicly accessible) |
 | `enhancement` | string | Yes | Jenis enhancement yang diinginkan (lihat daftar di bawah) |
-| `classification` | string | No | Klasifikasi produk (clothing, shoes, accessories, dll) |
+| `classification` | string | No | Klasifikasi produk (clothing, shoes, accessories, person, interior, dll) |
+| `customPose` | string | No | **[NEW]** Deskripsi pose spesifik untuk AI Photographer (hanya untuk classification="person") |
+| `customFurniture` | string | No | **[NEW]** Item furniture spesifik untuk Interior Design (hanya untuk classification="interior", pisahkan dengan koma) |
 | `watermark` | object | No | Konfigurasi watermark |
 | `watermark.type` | string | No | Tipe watermark: "none", "text", atau "logo" |
 | `watermark.text` | string | No | Text watermark (jika type = "text") |
@@ -80,6 +84,8 @@ x-api-key: eak_your_api_key_here
 | `remove_background` | Hapus background (pure white) |
 | `lifestyle` | Foto lifestyle dengan model |
 | `on-feet` | Sepatu saat dipakai (untuk produk sepatu) |
+| `ubah pose` atau `pose variation` | **[NEW]** Ubah pose untuk AI Photographer (gunakan `customPose` untuk pose spesifik) |
+| `virtual staging` atau `tambah furniture` | **[NEW]** Virtual staging untuk Interior Design (gunakan `customFurniture` untuk item spesifik) |
 
 **Response Success (200):**
 
@@ -222,6 +228,7 @@ x-api-key: eak_your_api_key_here
 
 ### cURL
 
+**Example 1: Basic Product Enhancement**
 ```bash
 curl -X POST https://[your-project-id].supabase.co/functions/v1/api-generate \
   -H "Content-Type: application/json" \
@@ -233,8 +240,35 @@ curl -X POST https://[your-project-id].supabase.co/functions/v1/api-generate \
   }'
 ```
 
+**Example 2: AI Photographer with Custom Pose**
+```bash
+curl -X POST https://[your-project-id].supabase.co/functions/v1/api-generate \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: eak_your_api_key_here" \
+  -d '{
+    "imageUrl": "https://example.com/portrait.jpg",
+    "enhancement": "ubah pose",
+    "classification": "person",
+    "customPose": "standing with arms crossed, looking confident and professional"
+  }'
+```
+
+**Example 3: Interior Design with Custom Furniture**
+```bash
+curl -X POST https://[your-project-id].supabase.co/functions/v1/api-generate \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: eak_your_api_key_here" \
+  -d '{
+    "imageUrl": "https://example.com/empty-room.jpg",
+    "enhancement": "virtual staging",
+    "classification": "interior",
+    "customFurniture": "sofa modern, meja TV minimalis, rak buku, karpet abu-abu"
+  }'
+```
+
 ### JavaScript (Fetch)
 
+**Example 1: Basic Product Enhancement**
 ```javascript
 // Generate image
 const response = await fetch('https://[your-project-id].supabase.co/functions/v1/api-generate', {
@@ -257,6 +291,46 @@ const response = await fetch('https://[your-project-id].supabase.co/functions/v1
 const data = await response.json();
 console.log('Generated:', data.generatedImageUrl);
 console.log('Task ID:', data.taskId);
+```
+
+**Example 2: AI Photographer with Custom Pose**
+```javascript
+const response = await fetch('https://[your-project-id].supabase.co/functions/v1/api-generate', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': 'eak_your_api_key_here'
+  },
+  body: JSON.stringify({
+    imageUrl: 'https://example.com/portrait.jpg',
+    enhancement: 'ubah pose',
+    classification: 'person',
+    customPose: 'sitting on a chair, hands on lap, smiling warmly'
+  })
+});
+
+const data = await response.json();
+console.log('Generated:', data.generatedImageUrl);
+```
+
+**Example 3: Interior Design with Custom Furniture**
+```javascript
+const response = await fetch('https://[your-project-id].supabase.co/functions/v1/api-generate', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': 'eak_your_api_key_here'
+  },
+  body: JSON.stringify({
+    imageUrl: 'https://example.com/empty-room.jpg',
+    enhancement: 'virtual staging',
+    classification: 'interior',
+    customFurniture: 'sofa L-shape, coffee table, floor lamp, wall art, indoor plants'
+  })
+});
+
+const data = await response.json();
+console.log('Generated:', data.generatedImageUrl);
 
 // Check status (optional - if you want to poll)
 const checkStatus = async (taskId) => {
@@ -280,6 +354,7 @@ console.log('Status:', status);
 
 ### Python
 
+**Example 1: Basic Product Enhancement**
 ```python
 import requests
 
@@ -292,6 +367,48 @@ payload = {
     'imageUrl': 'https://example.com/product.jpg',
     'enhancement': 'add_female_model',
     'classification': 'clothing'
+}
+
+response = requests.post(url, json=payload, headers=headers)
+data = response.json()
+print(data['generatedImageUrl'])
+```
+
+**Example 2: AI Photographer with Custom Pose**
+```python
+import requests
+
+url = 'https://[your-project-id].supabase.co/functions/v1/api-generate'
+headers = {
+    'Content-Type': 'application/json',
+    'x-api-key': 'eak_your_api_key_here'
+}
+payload = {
+    'imageUrl': 'https://example.com/portrait.jpg',
+    'enhancement': 'ubah pose',
+    'classification': 'person',
+    'customPose': 'leaning against a wall, casual pose, friendly smile'
+}
+
+response = requests.post(url, json=payload, headers=headers)
+data = response.json()
+print(data['generatedImageUrl'])
+```
+
+**Example 3: Interior Design with Custom Furniture**
+```python
+import requests
+
+url = 'https://[your-project-id].supabase.co/functions/v1/api-generate'
+headers = {
+    'Content-Type': 'application/json',
+    'x-api-key': 'eak_your_api_key_here'
+}
+payload = {
+    'imageUrl': 'https://example.com/empty-room.jpg',
+    'enhancement': 'virtual staging',
+    'classification': 'interior',
+    'customFurniture': 'dining table, 6 chairs, chandelier, sideboard, decorative vase'
 }
 
 response = requests.post(url, json=payload, headers=headers)
@@ -417,6 +534,12 @@ Jika Anda mengalami masalah atau memiliki pertanyaan:
 4. Join komunitas Discord untuk diskusi
 
 ## Changelog
+
+### Version 1.1.0 (2024-12-19)
+- **NEW:** Custom pose input untuk AI Photographer
+- **NEW:** Custom furniture items input untuk Interior Design
+- Improved flexibility untuk user-defined enhancements
+- Updated documentation dengan contoh lengkap
 
 ### Version 1.0.0 (2024-12-19)
 - Initial release

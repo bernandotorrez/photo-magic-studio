@@ -107,21 +107,25 @@ x-api-key: eak_your_api_key_here
 |-----------|----------|-----------|
 | `imageUrl` | ✅ Yes | URL gambar produk (harus publicly accessible) |
 | `enhancement` | ✅ Yes | Jenis enhancement (lihat tabel di bawah) |
-| `classification` | ❌ No | Kategori produk (clothing, shoes, accessories) |
+| `classification` | ❌ No | Kategori produk (clothing, shoes, accessories, person, interior) |
+| `customPose` | ❌ No | **[NEW]** Deskripsi pose spesifik untuk AI Photographer (hanya untuk `classification: "person"`) |
+| `customFurniture` | ❌ No | **[NEW]** Item furniture spesifik untuk Interior Design (hanya untuk `classification: "interior"`, pisahkan dengan koma) |
 | `watermark` | ❌ No | Konfigurasi watermark |
 
 ### Enhancement Types
 
-| Enhancement | Deskripsi | Cocok Untuk |
-|-------------|-----------|-------------|
-| `add_female_model` | Tampilkan produk dipakai model wanita | Pakaian wanita, aksesoris |
-| `add_male_model` | Tampilkan produk dipakai model pria | Pakaian pria |
-| `add_female_hijab_model` | Model wanita berhijab | Pakaian muslimah |
-| `add_mannequin` | Tampilkan di mannequin | Semua pakaian |
-| `remove_background` | Hapus background (pure white) | Semua produk |
-| `improve_lighting` | Perbaiki pencahayaan | Foto gelap |
-| `enhance_background` | Tingkatkan background | Background jelek |
-| `lifestyle` | Foto lifestyle dengan model | Semua produk |
+| Enhancement | Deskripsi | Cocok Untuk | Custom Input |
+|-------------|-----------|-------------|--------------|
+| `add_female_model` | Tampilkan produk dipakai model wanita | Pakaian wanita, aksesoris | - |
+| `add_male_model` | Tampilkan produk dipakai model pria | Pakaian pria | - |
+| `add_female_hijab_model` | Model wanita berhijab | Pakaian muslimah | - |
+| `add_mannequin` | Tampilkan di mannequin | Semua pakaian | - |
+| `remove_background` | Hapus background (pure white) | Semua produk | - |
+| `improve_lighting` | Perbaiki pencahayaan | Foto gelap | - |
+| `enhance_background` | Tingkatkan background | Background jelek | - |
+| `lifestyle` | Foto lifestyle dengan model | Semua produk | - |
+| `ubah pose` / `pose variation` | **[NEW]** Ubah pose orang | AI Photographer | `customPose` |
+| `virtual staging` / `tambah furniture` | **[NEW]** Tambah furniture ke ruangan | Interior Design | `customFurniture` |
 
 ### Response Success
 
@@ -148,6 +152,7 @@ x-api-key: eak_your_api_key_here
 
 ### 1. JavaScript (Browser/Node.js)
 
+**Basic Product Enhancement:**
 ```javascript
 async function generateImage() {
   const response = await fetch('https://[project-id].supabase.co/functions/v1/api-generate', {
@@ -168,6 +173,54 @@ async function generateImage() {
 }
 
 generateImage();
+```
+
+**AI Photographer with Custom Pose:**
+```javascript
+async function generateWithCustomPose() {
+  const response = await fetch('https://[project-id].supabase.co/functions/v1/api-generate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': 'eak_your_api_key'
+    },
+    body: JSON.stringify({
+      imageUrl: 'https://example.com/portrait.jpg',
+      enhancement: 'ubah pose',
+      classification: 'person',
+      customPose: 'standing with arms crossed, looking confident and professional'
+    })
+  });
+
+  const data = await response.json();
+  console.log('Generated:', data.generatedImageUrl);
+}
+
+generateWithCustomPose();
+```
+
+**Interior Design with Custom Furniture:**
+```javascript
+async function generateWithCustomFurniture() {
+  const response = await fetch('https://[project-id].supabase.co/functions/v1/api-generate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': 'eak_your_api_key'
+    },
+    body: JSON.stringify({
+      imageUrl: 'https://example.com/empty-room.jpg',
+      enhancement: 'virtual staging',
+      classification: 'interior',
+      customFurniture: 'sofa modern, meja TV minimalis, rak buku, karpet abu-abu, lampu standing'
+    })
+  });
+
+  const data = await response.json();
+  console.log('Generated:', data.generatedImageUrl);
+}
+
+generateWithCustomFurniture();
 ```
 
 ### 2. Python
@@ -400,7 +453,7 @@ async function generateWithCache(imageUrl, enhancement) {
 
 ### Q: Bisa custom enhancement sendiri?
 
-**A:** Saat ini belum, tapi akan ditambahkan di versi mendatang.
+**A:** Ya! Untuk AI Photographer, gunakan parameter `customPose` untuk menentukan pose spesifik. Untuk Interior Design, gunakan `customFurniture` untuk menentukan item furniture yang diinginkan.
 
 ### Q: Bagaimana cara monitor usage?
 

@@ -214,7 +214,7 @@ export default function ApiDocumentation() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <h4 className="font-semibold mb-2">Request:</h4>
+                <h4 className="font-semibold mb-2">Request Example:</h4>
                 <CodeBlock
                   language="bash"
                   label="cURL Request"
@@ -229,6 +229,36 @@ export default function ApiDocumentation() {
       "type": "text",
       "text": "My Brand"
     }
+  }'`}
+                />
+                
+                <h4 className="font-semibold mb-2 mt-4">✨ NEW: Custom Pose Example (AI Photographer):</h4>
+                <CodeBlock
+                  language="bash"
+                  label="Custom Pose Request"
+                  code={`curl -X POST ${SUPABASE_URL}/functions/v1/api-generate \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: eak_your_api_key" \\
+  -d '{
+    "imageUrl": "https://example.com/portrait.jpg",
+    "enhancement": "ubah pose",
+    "classification": "person",
+    "customPose": "standing with arms crossed, looking confident"
+  }'`}
+                />
+                
+                <h4 className="font-semibold mb-2 mt-4">✨ NEW: Custom Furniture Example (Interior Design):</h4>
+                <CodeBlock
+                  language="bash"
+                  label="Custom Furniture Request"
+                  code={`curl -X POST ${SUPABASE_URL}/functions/v1/api-generate \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: eak_your_api_key" \\
+  -d '{
+    "imageUrl": "https://example.com/empty-room.jpg",
+    "enhancement": "virtual staging",
+    "classification": "interior",
+    "customFurniture": "sofa modern, meja TV, rak buku, karpet"
   }'`}
                 />
               </div>
@@ -265,6 +295,18 @@ export default function ApiDocumentation() {
                         <td className="p-3">Kategori produk</td>
                       </tr>
                       <tr className="border-t">
+                        <td className="p-3 font-mono">customPose</td>
+                        <td className="p-3">string</td>
+                        <td className="p-3"><Badge variant="secondary">No</Badge></td>
+                        <td className="p-3">✨ Custom pose untuk AI Photographer</td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="p-3 font-mono">customFurniture</td>
+                        <td className="p-3">string</td>
+                        <td className="p-3"><Badge variant="secondary">No</Badge></td>
+                        <td className="p-3">✨ Custom furniture untuk Interior Design</td>
+                      </tr>
+                      <tr className="border-t">
                         <td className="p-3 font-mono">watermark</td>
                         <td className="p-3">object</td>
                         <td className="p-3"><Badge variant="secondary">No</Badge></td>
@@ -287,6 +329,8 @@ export default function ApiDocumentation() {
                     { value: 'improve_lighting', label: 'Improve Lighting' },
                     { value: 'enhance_background', label: 'Enhance Background' },
                     { value: 'lifestyle', label: 'Lifestyle Photo' },
+                    { value: 'ubah pose', label: '✨ Custom Pose (NEW)', badge: true },
+                    { value: 'virtual staging', label: '✨ Custom Furniture (NEW)', badge: true },
                   ].map((item) => (
                     <div key={item.value} className="flex items-center gap-2 p-2 border rounded">
                       <code className="text-xs bg-muted px-2 py-1 rounded">{item.value}</code>

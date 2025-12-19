@@ -22,7 +22,7 @@ Contoh penggunaan API untuk berbagai bahasa pemrograman dan framework.
 ### Basic Fetch
 
 ```typescript
-async function generateImage(imageUrl: string, enhancement: string) {
+async function generateImage(imageUrl: string, enhancement: string, options?: any) {
   const response = await fetch('https://[project-id].supabase.co/functions/v1/api-generate', {
     method: 'POST',
     headers: {
@@ -32,7 +32,8 @@ async function generateImage(imageUrl: string, enhancement: string) {
     body: JSON.stringify({
       imageUrl,
       enhancement,
-      classification: 'clothing'
+      classification: 'clothing',
+      ...options
     })
   });
 
@@ -44,11 +45,41 @@ async function generateImage(imageUrl: string, enhancement: string) {
   return await response.json();
 }
 
-// Usage
+// Usage - Basic Product Enhancement
 try {
   const result = await generateImage(
     'https://example.com/product.jpg',
     'add_female_model'
+  );
+  console.log('Generated:', result.generatedImageUrl);
+} catch (error) {
+  console.error('Error:', error.message);
+}
+
+// Usage - AI Photographer with Custom Pose
+try {
+  const result = await generateImage(
+    'https://example.com/portrait.jpg',
+    'ubah pose',
+    {
+      classification: 'person',
+      customPose: 'sitting on a chair, hands on lap, smiling warmly'
+    }
+  );
+  console.log('Generated:', result.generatedImageUrl);
+} catch (error) {
+  console.error('Error:', error.message);
+}
+
+// Usage - Interior Design with Custom Furniture
+try {
+  const result = await generateImage(
+    'https://example.com/empty-room.jpg',
+    'virtual staging',
+    {
+      classification: 'interior',
+      customFurniture: 'sofa L-shape, coffee table, floor lamp, wall art'
+    }
   );
   console.log('Generated:', result.generatedImageUrl);
 } catch (error) {
@@ -491,6 +522,8 @@ interface GenerateOptions {
   imageUrl: string;
   enhancement: string;
   classification?: string;
+  customPose?: string; // NEW: For AI Photographer
+  customFurniture?: string; // NEW: For Interior Design
   watermark?: {
     type: 'none' | 'text' | 'logo';
     text?: string;
@@ -549,6 +582,34 @@ function ImageEnhancer() {
         imageUrl: 'https://example.com/product.jpg',
         enhancement: 'add_female_model',
         classification: 'clothing',
+      });
+      setResult(url);
+    } catch (err) {
+      console.error('Generation failed:', err);
+    }
+  };
+
+  const handleGenerateWithCustomPose = async () => {
+    try {
+      const url = await generate({
+        imageUrl: 'https://example.com/portrait.jpg',
+        enhancement: 'ubah pose',
+        classification: 'person',
+        customPose: 'standing with arms crossed, looking confident',
+      });
+      setResult(url);
+    } catch (err) {
+      console.error('Generation failed:', err);
+    }
+  };
+
+  const handleGenerateWithCustomFurniture = async () => {
+    try {
+      const url = await generate({
+        imageUrl: 'https://example.com/empty-room.jpg',
+        enhancement: 'virtual staging',
+        classification: 'interior',
+        customFurniture: 'sofa, meja TV, rak buku, karpet',
       });
       setResult(url);
     } catch (err) {
