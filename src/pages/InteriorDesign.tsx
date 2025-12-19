@@ -50,26 +50,7 @@ export default function InteriorDesign() {
     setImageUrl(url);
     setImagePath(path);
     setClassification(classif);
-    
-    // Filter hanya enhancement untuk Interior Design
-    const interiorEnhancements = options.filter(opt => 
-      opt.includes('Virtual Staging') ||
-      opt.includes('Style Transformation') ||
-      opt.includes('Color Scheme') ||
-      opt.includes('Lighting Enhancement') ||
-      opt.includes('Wallpaper') ||
-      opt.includes('Cat Dinding') ||
-      opt.includes('Dekorasi') ||
-      opt.includes('Artwork') ||
-      opt.includes('Tanaman') ||
-      opt.includes('Luxury') ||
-      opt.includes('Scandinavian') ||
-      opt.includes('Industrial') ||
-      opt.includes('Bohemian') ||
-      opt.includes('Furniture')
-    );
-    
-    setEnhancementOptions(interiorEnhancements);
+    setEnhancementOptions(options);
     setSelectedEnhancements([]);
     setGeneratedResults([]);
   };
@@ -187,6 +168,7 @@ export default function InteriorDesign() {
               <ImageUploader
                 onImageUploaded={handleImageUploaded}
                 profile={profile}
+                classifyFunction="classify-interior"
               />
             </CardContent>
           </Card>

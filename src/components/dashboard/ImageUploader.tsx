@@ -17,9 +17,10 @@ interface Profile {
 interface ImageUploaderProps {
   onImageUploaded: (url: string, path: string, classification: string, options: string[]) => void;
   profile: Profile | null;
+  classifyFunction?: string; // Edge function name for classification
 }
 
-export function ImageUploader({ onImageUploaded, profile }: ImageUploaderProps) {
+export function ImageUploader({ onImageUploaded, profile, classifyFunction = 'classify-image' }: ImageUploaderProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState('');
@@ -27,12 +28,55 @@ export function ImageUploader({ onImageUploaded, profile }: ImageUploaderProps) 
   const { user } = useAuth();
   const { toast } = useToast();
 
+  // Helper function to classify image
+  const classifyImage = async (imageUrl: string) => {
+    console.log('Calling classify function:', classifyFunction);
+    const { data, error } = await supabase.functions.invoke(classifyFunction, {
+      body: { imageUrl },
+    });
+
+    if (error) {
+      console.error('Classification error:', error);
+      throw error;
+    }
+
+    console.log('Classification response:', data);
+    return data;
+  };
+
   // Only check limit if profile is loaded
   const canGenerate = profile 
     ? profile.current_month_generates < profile.monthly_generate_limit 
     : true; // Allow during loading to prevent false error message
 
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+  const onDrop = useCallback(async (acceptedFiles: File[], rejectedFiles: any[]) => {
+    // Handle rejected files (too large, wrong format, etc.)
+    if (rejectedFiles.length > 0) {
+      const rejection = rejectedFiles[0];
+      const error = rejection.errors[0];
+      
+      if (error.code === 'file-too-large') {
+        toast({
+          title: 'File Terlalu Besar',
+          description: 'Ukuran file maksimal 2MB. Silakan kompres gambar terlebih dahulu.',
+          variant: 'destructive',
+        });
+      } else if (error.code === 'file-invalid-type') {
+        toast({
+          title: 'Format File Tidak Valid',
+          description: 'Hanya file PNG, JPG, JPEG, dan WebP yang diperbolehkan.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Upload Gagal',
+          description: error.message || 'File tidak dapat diupload.',
+          variant: 'destructive',
+        });
+      }
+      return;
+    }
+
     const file = acceptedFiles[0];
     if (!file || !user) return;
 
@@ -70,22 +114,18 @@ export function ImageUploader({ onImageUploaded, profile }: ImageUploaderProps) 
       if (!signedUrlData?.signedUrl) throw new Error('Failed to get signed URL');
 
       // Call edge function for classification
-      const { data, error } = await supabase.functions.invoke('classify-image', {
-        body: { imageUrl: signedUrlData.signedUrl },
-      });
-
-      if (error) throw error;
+      const classificationData = await classifyImage(signedUrlData.signedUrl);
 
       onImageUploaded(
         signedUrlData.signedUrl,
         fileName,
-        data.classification,
-        data.enhancementOptions
+        classificationData.classification,
+        classificationData.enhancementOptions
       );
 
       toast({
         title: 'Gambar Berhasil Diupload',
-        description: `Terdeteksi sebagai: ${data.classification}`,
+        description: `Terdeteksi sebagai: ${classificationData.classification}`,
       });
     } catch (error: any) {
       console.error('Upload error:', error);
@@ -98,7 +138,7 @@ export function ImageUploader({ onImageUploaded, profile }: ImageUploaderProps) 
     } finally {
       setIsUploading(false);
     }
-  }, [user, canGenerate, onImageUploaded, toast]);
+  }, [user, canGenerate, onImageUploaded, toast, classifyImage]);
 
   const handleUrlUpload = async () => {
     if (!imageUrl.trim() || !user) return;
@@ -135,9 +175,9 @@ export function ImageUploader({ onImageUploaded, profile }: ImageUploaderProps) 
       
       const blob = await response.blob();
       
-      // Check file size (max 10MB)
-      if (blob.size > 10 * 1024 * 1024) {
-        throw new Error('Ukuran gambar terlalu besar (max 10MB)');
+      // Check file size (max 2MB)
+      if (blob.size > 2 * 1024 * 1024) {
+        throw new Error('Ukuran gambar terlalu besar (max 2MB)');
       }
 
       // Check if it's an image
@@ -163,22 +203,18 @@ export function ImageUploader({ onImageUploaded, profile }: ImageUploaderProps) 
       if (!signedUrlData?.signedUrl) throw new Error('Failed to get signed URL');
 
       // Call edge function for classification
-      const { data, error } = await supabase.functions.invoke('classify-image', {
-        body: { imageUrl: signedUrlData.signedUrl },
-      });
-
-      if (error) throw error;
+      const classificationData = await classifyImage(signedUrlData.signedUrl);
 
       onImageUploaded(
         signedUrlData.signedUrl,
         fileName,
-        data.classification,
-        data.enhancementOptions
+        classificationData.classification,
+        classificationData.enhancementOptions
       );
 
       toast({
         title: 'Gambar Berhasil Diupload',
-        description: `Terdeteksi sebagai: ${data.classification}`,
+        description: `Terdeteksi sebagai: ${classificationData.classification}`,
       });
       
       setImageUrl('');
@@ -214,7 +250,7 @@ export function ImageUploader({ onImageUploaded, profile }: ImageUploaderProps) 
       'image/*': ['.png', '.jpg', '.jpeg', '.webp'],
     },
     maxFiles: 1,
-    maxSize: 10 * 1024 * 1024, // 10MB
+    maxSize: 2 * 1024 * 1024, // 2MB
     disabled: isUploading || (profile && !canGenerate), // Only disable if profile loaded and limit reached
   });
 
@@ -286,7 +322,7 @@ export function ImageUploader({ onImageUploaded, profile }: ImageUploaderProps) 
                     {isDragActive ? 'Lepaskan gambar di sini' : 'Drag & drop gambar atau klik untuk upload'}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    PNG, JPG, JPEG, WebP (Max 10MB)
+                    PNG, JPG, JPEG, WebP (Max 2MB)
                   </p>
                 </div>
               </div>
@@ -324,7 +360,7 @@ export function ImageUploader({ onImageUploaded, profile }: ImageUploaderProps) 
                   />
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground">
-                      Masukkan URL gambar yang valid (PNG, JPG, JPEG, WebP - Max 10MB)
+                      Masukkan URL gambar yang valid (PNG, JPG, JPEG, WebP - Max 2MB)
                     </p>
                     <p className="text-xs text-amber-600">
                       ⚠️ Beberapa website memblokir akses langsung. Jika gagal, download gambar lalu gunakan Upload File.

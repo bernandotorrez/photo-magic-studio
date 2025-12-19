@@ -50,22 +50,7 @@ export default function AiPhotographer() {
     setImageUrl(url);
     setImagePath(path);
     setClassification(classif);
-    
-    // Filter hanya enhancement untuk AI Photographer (person category)
-    const photographerEnhancements = options.filter(opt => 
-      opt.includes('Virtual Outfit') ||
-      opt.includes('Ubah Pose') ||
-      opt.includes('Ganti Background') ||
-      opt.includes('Portrait Enhancement') ||
-      opt.includes('Beauty Enhancement') ||
-      opt.includes('Ekspresi') ||
-      opt.includes('Business Portrait') ||
-      opt.includes('Fashion Editorial') ||
-      opt.includes('Cinematic') ||
-      opt.includes('Studio Portrait')
-    );
-    
-    setEnhancementOptions(photographerEnhancements);
+    setEnhancementOptions(options);
     setSelectedEnhancements([]);
     setGeneratedResults([]);
   };
@@ -183,6 +168,7 @@ export default function AiPhotographer() {
               <ImageUploader
                 onImageUploaded={handleImageUploaded}
                 profile={profile}
+                classifyFunction="classify-portrait"
               />
             </CardContent>
           </Card>

@@ -50,28 +50,7 @@ export default function ExteriorDesign() {
     setImageUrl(url);
     setImagePath(path);
     setClassification(classif);
-    
-    // Filter hanya enhancement untuk Exterior Design
-    const exteriorEnhancements = options.filter(opt => 
-      opt.includes('Facade') ||
-      opt.includes('Landscaping') ||
-      opt.includes('Taman') ||
-      opt.includes('Waktu') ||
-      opt.includes('Cuaca') ||
-      opt.includes('Cat Eksterior') ||
-      opt.includes('Jendela') ||
-      opt.includes('Pintu') ||
-      opt.includes('Outdoor Lighting') ||
-      opt.includes('Pool') ||
-      opt.includes('Water Feature') ||
-      opt.includes('Driveway') ||
-      opt.includes('Parking') ||
-      opt.includes('Garden') ||
-      opt.includes('Flowers') ||
-      opt.includes('Architecture')
-    );
-    
-    setEnhancementOptions(exteriorEnhancements);
+    setEnhancementOptions(options);
     setSelectedEnhancements([]);
     setGeneratedResults([]);
   };
@@ -189,6 +168,7 @@ export default function ExteriorDesign() {
               <ImageUploader
                 onImageUploaded={handleImageUploaded}
                 profile={profile}
+                classifyFunction="classify-exterior"
               />
             </CardContent>
           </Card>

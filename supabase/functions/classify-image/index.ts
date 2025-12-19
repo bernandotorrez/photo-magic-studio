@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { imageUrl } = await req.json();
+    const { imageUrl, forceCategory } = await req.json();
     
     if (!imageUrl) {
       return new Response(
@@ -32,10 +32,12 @@ serve(async (req) => {
 
     console.log('Classifying image:', imageUrl);
 
-    // Default category for e-commerce products
-    let category = 'product';
+    // If forceCategory is provided, use it directly
+    let category = forceCategory || 'product';
     
-    // Try to classify with Hugging Face
+    // Only classify if no forceCategory is provided
+    if (!forceCategory) {
+      // Try to classify with Hugging Face
     try {
       // Fetch the image first
       const imageResponse = await fetch(imageUrl);
@@ -87,9 +89,11 @@ serve(async (req) => {
         const errorText = await response.text();
         console.log('Hugging Face API error:', errorText);
       }
-    } catch (apiError) {
-      console.log('Classification error, using default category:', apiError);
+      } catch (apiError) {
+        console.log('Classification error, using default category:', apiError);
+      }
     }
+    
     // Default enhancement options for all products
     const baseEnhancementOptions = [
       'Tingkatkan Kualitas Gambar',

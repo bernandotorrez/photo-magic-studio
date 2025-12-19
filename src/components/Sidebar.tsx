@@ -160,12 +160,12 @@ export function Sidebar({ isAdmin = false, onSignOut }: SidebarProps) {
                         {item.info && (
                           <Popover>
                             <PopoverTrigger asChild>
-                              <button
+                              <span
                                 onClick={(e) => e.stopPropagation()}
-                                className="p-0.5 hover:bg-accent rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="p-0.5 hover:bg-accent rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer inline-flex"
                               >
                                 <Info className="h-3 w-3 text-muted-foreground" />
-                              </button>
+                              </span>
                             </PopoverTrigger>
                             <PopoverContent className="w-64 text-sm" side="right">
                               <p className="text-muted-foreground">{item.info}</p>

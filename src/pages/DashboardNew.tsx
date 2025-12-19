@@ -172,6 +172,7 @@ export default function DashboardNew() {
                   <ImageUploader 
                     onImageUploaded={handleImageUploaded}
                     profile={profile}
+                    classifyFunction="classify-fashion"
                   />
                 )}
                 
