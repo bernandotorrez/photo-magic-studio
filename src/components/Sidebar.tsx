@@ -19,7 +19,8 @@ import {
   Shirt,
   Rocket,
   CreditCard,
-  FileText
+  FileText,
+  UtensilsCrossed
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -77,6 +78,14 @@ export function Sidebar({ isAdmin = false, onSignOut }: SidebarProps) {
       badge: 'New',
       badgeVariant: 'secondary',
       info: 'AI untuk exterior & architecture - facade renovation, landscaping, time of day change, weather effects, dan architectural visualization.'
+    },
+    { 
+      icon: UtensilsCrossed, 
+      label: 'Food Enhancement', 
+      path: '/food-enhancement',
+      badge: 'New',
+      badgeVariant: 'secondary',
+      info: 'AI untuk food photography - perfect angles, plating styles, lighting effects, ingredient overlays, banners untuk menu & delivery apps.'
     },
     { 
       icon: Rocket, 

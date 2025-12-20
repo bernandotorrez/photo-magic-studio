@@ -306,7 +306,7 @@ export default function PaymentManagement() {
                     <div>
                       <CardTitle className="text-base">
                         {payment.tokens_purchased} Tokens
-                        {payment.bonus_tokens && payment.bonus_tokens > 0 && (
+                        {payment.bonus_tokens > 0 && (
                           <span className="text-green-600"> +{payment.bonus_tokens} Bonus</span>
                         )}
                         {' '}- {payment.user_email}
@@ -346,7 +346,7 @@ export default function PaymentManagement() {
                       <p className="font-medium capitalize">{payment.payment_status}</p>
                     </div>
                   </div>
-                  {payment.bonus_tokens && payment.bonus_tokens > 0 && (
+                  {payment.bonus_tokens > 0 && (
                     <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded text-sm">
                       <p className="font-medium text-green-700">
                         🎁 Bonus Token: +{payment.bonus_tokens} token dari kode unik {payment.unique_code}
