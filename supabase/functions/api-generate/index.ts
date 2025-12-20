@@ -78,30 +78,24 @@ serve(async (req) => {
       );
     }
 
-    // Check user's remaining generations
+    // Check user's remaining tokens (dual token system)
     const { data: profileData } = await supabase
       .from('profiles')
-      .select('monthly_generate_limit')
+      .select('subscription_tokens, purchased_tokens')
       .eq('user_id', userId)
       .maybeSingle();
 
-    const limit = profileData?.monthly_generate_limit || 3;
+    const subscriptionTokens = profileData?.subscription_tokens || 0;
+    const purchasedTokens = profileData?.purchased_tokens || 0;
+    const totalTokens = subscriptionTokens + purchasedTokens;
     
-    const { data: canGenerate } = await supabase
-      .rpc('can_user_generate', { 
-        p_email: userEmail,
-        p_user_id: userId 
-      });
-
-    if (canGenerate === false) {
-      const { data: currentCount } = await supabase
-        .rpc('get_generation_count_by_email', { p_email: userEmail });
-      
+    if (totalTokens <= 0) {
       return new Response(
         JSON.stringify({ 
-          error: 'Monthly generation quota exceeded',
-          current: currentCount || 0,
-          limit: limit
+          error: 'Insufficient tokens. Please top up to continue.',
+          subscription_tokens: subscriptionTokens,
+          purchased_tokens: purchasedTokens,
+          total_tokens: totalTokens
         }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -341,9 +335,10 @@ serve(async (req) => {
             prompt_used: generatedPrompt
           });
 
-        // Update count
-        await supabase.rpc('increment_generation_count', {
-          p_user_id: userId
+        // Deduct tokens using dual token system (subscription tokens first)
+        await supabase.rpc('deduct_tokens_dual', {
+          p_user_id: userId,
+          p_amount: 1
         });
       }
     } catch (saveError) {

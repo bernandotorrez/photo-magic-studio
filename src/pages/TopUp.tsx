@@ -211,7 +211,7 @@ export default function TopUp() {
         return;
       }
 
-      // Create payment record
+      // Create payment record with token_type = 'purchased' for top-up
       const { error } = await supabase
         .from('payments' as any)
         .insert({
@@ -228,7 +228,8 @@ export default function TopUp() {
           bank_name: 'BCA',
           account_name: 'Bernand Dayamuntari Hermawan',
           account_number: '2040239483',
-          transfer_date: new Date().toISOString()
+          transfer_date: new Date().toISOString(),
+          token_type: 'purchased' // Top-up tokens never expire
         });
 
       if (error) throw error;

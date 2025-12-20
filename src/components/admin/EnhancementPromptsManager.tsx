@@ -7,7 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Pencil, Trash2, Plus, Save, X } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Pencil, Trash2, Plus, Save, X, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface EnhancementPrompt {
@@ -29,6 +31,10 @@ export default function EnhancementPromptsManager() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [formData, setFormData] = useState<Partial<EnhancementPrompt>>({
     enhancement_type: '',
     display_name: '',
@@ -149,6 +155,29 @@ export default function EnhancementPromptsManager() {
     }
   };
 
+  // Filter prompts based on search and category
+  const filteredPrompts = prompts.filter((prompt) => {
+    const matchesSearch = 
+      prompt.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      prompt.enhancement_type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      prompt.prompt_template.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesCategory = categoryFilter === 'all' || prompt.category === categoryFilter;
+    
+    return matchesSearch && matchesCategory;
+  });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredPrompts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedPrompts = filteredPrompts.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, categoryFilter]);
+
   if (loading) {
     return <div className="flex justify-center p-8">Loading...</div>;
   }
@@ -158,13 +187,58 @@ export default function EnhancementPromptsManager() {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Enhancement Prompts Manager</h2>
-          <p className="text-muted-foreground">Manage AI enhancement prompts for all categories</p>
+          <p className="text-muted-foreground">
+            Manage AI enhancement prompts for all categories ({prompts.length} total)
+          </p>
         </div>
         <Button onClick={handleCreate} disabled={isCreating}>
           <Plus className="w-4 h-4 mr-2" />
           Add New Prompt
         </Button>
       </div>
+
+      {/* Search and Filter */}
+      {!isCreating && !editingId && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by name, type, or prompt..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Filter by category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  <SelectItem value="general">General</SelectItem>
+                  <SelectItem value="interior">Interior</SelectItem>
+                  <SelectItem value="exterior">Exterior</SelectItem>
+                  <SelectItem value="fashion">Fashion</SelectItem>
+                  <SelectItem value="furniture">Furniture</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(parseInt(value))}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5 per page</SelectItem>
+                  <SelectItem value="10">10 per page</SelectItem>
+                  <SelectItem value="20">20 per page</SelectItem>
+                  <SelectItem value="50">50 per page</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {(isCreating || editingId) && (
         <Card className="border-primary">
@@ -271,38 +345,75 @@ export default function EnhancementPromptsManager() {
         </Card>
       )}
 
-      <div className="grid gap-4">
-        {['interior', 'exterior', 'fashion', 'furniture', 'general'].map((category) => {
-          const categoryPrompts = prompts.filter((p) => p.category === category);
-          if (categoryPrompts.length === 0) return null;
-
-          return (
-            <div key={category}>
-              <h3 className="text-lg font-semibold mb-3 capitalize">{category} Enhancements</h3>
-              <div className="grid gap-3">
-                {categoryPrompts.map((prompt) => (
-                  <Card key={prompt.id} className={!prompt.is_active ? 'opacity-60' : ''}>
-                    <CardContent className="pt-6">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h4 className="font-semibold">{prompt.display_name}</h4>
-                            <code className="text-xs bg-muted px-2 py-1 rounded">
-                              {prompt.enhancement_type}
-                            </code>
-                            <Switch
-                              checked={prompt.is_active}
-                              onCheckedChange={() => handleToggleActive(prompt.id, prompt.is_active)}
-                            />
-                          </div>
+      {/* DataTable */}
+      <Card>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[50px]">Status</TableHead>
+                  <TableHead className="w-[200px]">Display Name</TableHead>
+                  <TableHead className="w-[150px]">Type</TableHead>
+                  <TableHead className="w-[120px]">Category</TableHead>
+                  <TableHead>Prompt Template</TableHead>
+                  <TableHead className="w-[80px]">Order</TableHead>
+                  <TableHead className="w-[120px] text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedPrompts.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      {searchQuery || categoryFilter !== 'all' 
+                        ? 'No prompts found matching your filters'
+                        : 'No enhancement prompts yet. Click "Add New Prompt" to create one.'}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginatedPrompts.map((prompt) => (
+                    <TableRow key={prompt.id} className={!prompt.is_active ? 'opacity-50' : ''}>
+                      <TableCell>
+                        <Switch
+                          checked={prompt.is_active}
+                          onCheckedChange={() => handleToggleActive(prompt.id, prompt.is_active)}
+                          disabled={editingId !== null || isCreating}
+                        />
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        <div>
+                          <div className="font-semibold">{prompt.display_name}</div>
                           {prompt.description && (
-                            <p className="text-sm text-muted-foreground mb-2">{prompt.description}</p>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {prompt.description}
+                            </div>
                           )}
-                          <p className="text-sm bg-muted p-3 rounded mt-2">{prompt.prompt_template}</p>
                         </div>
-                        <div className="flex gap-2 ml-4">
+                      </TableCell>
+                      <TableCell>
+                        <code className="text-xs bg-muted px-2 py-1 rounded">
+                          {prompt.enhancement_type}
+                        </code>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="capitalize">
+                          {prompt.category}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="max-w-md">
+                          <p className="text-sm text-muted-foreground truncate">
+                            {prompt.prompt_template}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span className="text-sm text-muted-foreground">{prompt.sort_order}</span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex gap-2 justify-end">
                           <Button
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
                             onClick={() => handleEdit(prompt)}
                             disabled={editingId !== null || isCreating}
@@ -310,23 +421,83 @@ export default function EnhancementPromptsManager() {
                             <Pencil className="w-4 h-4" />
                           </Button>
                           <Button
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
                             onClick={() => handleDelete(prompt.id)}
                             disabled={editingId !== null || isCreating}
+                            className="text-destructive hover:text-destructive"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Pagination */}
+      {filteredPrompts.length > 0 && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                Showing {startIndex + 1} to {Math.min(endIndex, filteredPrompts.length)} of {filteredPrompts.length} prompts
+                {(searchQuery || categoryFilter !== 'all') && ` (filtered from ${prompts.length} total)`}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                    // Show first page, last page, current page, and pages around current
+                    if (
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+                    ) {
+                      return (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className="w-9"
+                        >
+                          {page}
+                        </Button>
+                      );
+                    } else if (page === currentPage - 2 || page === currentPage + 2) {
+                      return <span key={page} className="px-1">...</span>;
+                    }
+                    return null;
+                  })}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
               </div>
             </div>
-          );
-        })}
-      </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

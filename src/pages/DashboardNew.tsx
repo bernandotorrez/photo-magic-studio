@@ -26,8 +26,9 @@ interface Profile {
   id: string;
   full_name: string | null;
   subscription_plan: string;
-  monthly_generate_limit: number;
-  current_month_generates: number;
+  subscription_tokens: number;
+  purchased_tokens: number;
+  subscription_expires_at: string | null;
   is_admin: boolean;
 }
 
@@ -86,17 +87,7 @@ export default function DashboardNew() {
       .eq('user_id', user.id)
       .maybeSingle();
     
-    if (data && user.email) {
-      // Get actual generation count by email
-      const { data: emailCount } = await supabase
-        .rpc('get_generation_count_by_email', { p_email: user.email });
-      
-      // Update profile with email-based count
-      setProfile({
-        ...data,
-        current_month_generates: emailCount || 0
-      });
-    } else if (data) {
+    if (data) {
       setProfile(data);
     }
   };
@@ -153,14 +144,66 @@ export default function DashboardNew() {
           </TabsList>
 
           <TabsContent value="generate" className="space-y-4">
-            {/* Quota Exceeded Alert */}
-            {profile && profile.current_month_generates >= profile.monthly_generate_limit && (
+            {/* Token Expired/Expiring Soon Alert */}
+            {profile && profile.subscription_expires_at && (() => {
+              const expiresAt = new Date(profile.subscription_expires_at);
+              const now = new Date();
+              const daysUntilExpiry = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+              
+              if (daysUntilExpiry <= 0 && profile.subscription_tokens > 0) {
+                return (
+                  <Alert className="border-red-500/50 bg-red-500/5">
+                    <AlertCircle className="h-4 w-4 text-red-500" />
+                    <AlertTitle className="text-red-500">Token Bulanan Sudah Expired</AlertTitle>
+                    <AlertDescription className="space-y-3">
+                      <p>
+                        Token bulanan Anda sebanyak <strong>{profile.subscription_tokens}</strong> sudah expired dan akan dihapus otomatis. 
+                        Token top-up Anda (<strong>{profile.purchased_tokens}</strong>) masih aktif dan tidak akan hangus.
+                      </p>
+                      <Button 
+                        onClick={() => navigate('/top-up')}
+                        size="sm"
+                        className="bg-red-500 hover:bg-red-600"
+                      >
+                        <Coins className="w-4 h-4 mr-2" />
+                        Top Up Token Sekarang
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                );
+              } else if (daysUntilExpiry > 0 && daysUntilExpiry <= 7 && profile.subscription_tokens > 0) {
+                return (
+                  <Alert className="border-yellow-500/50 bg-yellow-500/5">
+                    <AlertCircle className="h-4 w-4 text-yellow-500" />
+                    <AlertTitle className="text-yellow-500">Token Bulanan Akan Segera Expired</AlertTitle>
+                    <AlertDescription className="space-y-3">
+                      <p>
+                        Token bulanan Anda sebanyak <strong>{profile.subscription_tokens}</strong> akan expired dalam <strong>{daysUntilExpiry} hari</strong> ({expiresAt.toLocaleDateString('id-ID')}). 
+                        Gunakan sebelum hangus! Token top-up Anda (<strong>{profile.purchased_tokens}</strong>) tidak akan hangus.
+                      </p>
+                      <Button 
+                        onClick={() => navigate('/top-up')}
+                        size="sm"
+                        variant="outline"
+                      >
+                        <Coins className="w-4 h-4 mr-2" />
+                        Top Up Token Tambahan
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                );
+              }
+              return null;
+            })()}
+
+            {/* No Tokens Alert */}
+            {profile && (profile.subscription_tokens + profile.purchased_tokens) <= 0 && (
               <Alert className="border-red-500/50 bg-red-500/5">
                 <AlertCircle className="h-4 w-4 text-red-500" />
-                <AlertTitle className="text-red-500">Kuota Generate Habis</AlertTitle>
+                <AlertTitle className="text-red-500">Token Habis</AlertTitle>
                 <AlertDescription className="space-y-3">
                   <p>
-                    Anda sudah menggunakan <strong>{profile.current_month_generates}</strong> dari <strong>{profile.monthly_generate_limit}</strong> generate bulan ini.
+                    Token Anda sudah habis. Silakan top up untuk melanjutkan generate gambar.
                   </p>
                   <div className="flex gap-2">
                     <Button 
@@ -183,17 +226,16 @@ export default function DashboardNew() {
               </Alert>
             )}
 
-            {/* Low Quota Warning */}
+            {/* Low Tokens Warning */}
             {profile && 
-             profile.current_month_generates < profile.monthly_generate_limit &&
-             profile.current_month_generates >= profile.monthly_generate_limit * 0.8 && (
+             (profile.subscription_tokens + profile.purchased_tokens) > 0 &&
+             (profile.subscription_tokens + profile.purchased_tokens) <= 5 && (
               <Alert className="border-yellow-500/50 bg-yellow-500/5">
                 <AlertCircle className="h-4 w-4 text-yellow-500" />
-                <AlertTitle className="text-yellow-500">Kuota Hampir Habis</AlertTitle>
+                <AlertTitle className="text-yellow-500">Token Hampir Habis</AlertTitle>
                 <AlertDescription className="space-y-3">
                   <p>
-                    Anda sudah menggunakan <strong>{profile.current_month_generates}</strong> dari <strong>{profile.monthly_generate_limit}</strong> generate. 
-                    Sisa <strong>{profile.monthly_generate_limit - profile.current_month_generates}</strong> generate lagi.
+                    Sisa token Anda: <strong>{profile.subscription_tokens}</strong> token bulanan + <strong>{profile.purchased_tokens}</strong> token top-up = <strong>{profile.subscription_tokens + profile.purchased_tokens}</strong> total.
                   </p>
                   <Button 
                     onClick={() => navigate('/top-up')}
