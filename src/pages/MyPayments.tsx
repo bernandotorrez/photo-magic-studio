@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { FileText, Download, Eye } from 'lucide-react';
+import { FileText, Download, Clock, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
@@ -25,11 +25,12 @@ interface Payment {
   payment_method: string;
   subscription_plan: string;
   token_type: string;
+  invoice_no: string | null;
   created_at: string;
   verified_at: string;
 }
 
-export default function Invoices() {
+export default function MyPayments() {
   const { user } = useAuth();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,13 +48,12 @@ export default function Invoices() {
         .from('payments' as any)
         .select('*')
         .eq('user_id', user?.id)
-        .eq('payment_status', 'approved')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       setPayments((data as any) || []);
     } catch (error: any) {
-      toast.error('Gagal memuat invoice: ' + error.message);
+      toast.error('Gagal memuat pembayaran: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -80,8 +80,27 @@ export default function Invoices() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
+      case 'pending':
+        return (
+          <Badge variant="secondary" className="gap-1">
+            <Clock className="w-3 h-3" />
+            Menunggu
+          </Badge>
+        );
       case 'approved':
-        return <Badge className="bg-green-500">Lunas</Badge>;
+        return (
+          <Badge className="bg-green-500 gap-1">
+            <CheckCircle2 className="w-3 h-3" />
+            Lunas
+          </Badge>
+        );
+      case 'rejected':
+        return (
+          <Badge variant="destructive" className="gap-1">
+            <XCircle className="w-3 h-3" />
+            Ditolak
+          </Badge>
+        );
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -108,9 +127,9 @@ export default function Invoices() {
     <Layout>
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">Invoice</h1>
+          <h1 className="text-3xl font-bold mb-2">Pembayaran Saya</h1>
           <p className="text-muted-foreground">
-            Daftar invoice pembayaran yang sudah disetujui
+            Riwayat semua pembayaran Anda
           </p>
         </div>
 
@@ -118,16 +137,16 @@ export default function Invoices() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="w-5 h-5" />
-              Daftar Invoice
+              Riwayat Pembayaran
             </CardTitle>
           </CardHeader>
           <CardContent>
             {payments.length === 0 ? (
               <div className="text-center py-12">
                 <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-muted-foreground">Belum ada invoice</p>
+                <p className="text-muted-foreground">Belum ada pembayaran</p>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Invoice akan muncul setelah pembayaran Anda disetujui
+                  Riwayat pembayaran akan muncul di sini
                 </p>
               </div>
             ) : (
@@ -141,14 +160,14 @@ export default function Invoices() {
                       <TableHead>Token</TableHead>
                       <TableHead>Total</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead className="text-right">Download</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {payments.map((payment) => (
                       <TableRow key={payment.id}>
                         <TableCell className="font-mono text-sm">
-                          INV-{payment.id.substring(0, 8).toUpperCase()}
+                          {payment.invoice_no || `INV-${payment.id.substring(0, 8).toUpperCase()}`}
                         </TableCell>
                         <TableCell>
                           {format(new Date(payment.created_at), 'dd MMM yyyy', { locale: idLocale })}
@@ -167,7 +186,7 @@ export default function Invoices() {
                         </TableCell>
                         <TableCell>{getStatusBadge(payment.payment_status)}</TableCell>
                         <TableCell className="text-right">
-                          <div className="flex gap-2 justify-end">
+                          {payment.payment_status === 'approved' ? (
                             <Button
                               variant="outline"
                               size="sm"
@@ -182,11 +201,13 @@ export default function Invoices() {
                               ) : (
                                 <>
                                   <Download className="w-4 h-4 mr-2" />
-                                  Download PDF
+                                  Download
                                 </>
                               )}
                             </Button>
-                          </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">-</span>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}

@@ -22,7 +22,7 @@ import ApiDocumentationPage from "./pages/ApiDocumentation";
 import TopUp from "./pages/TopUp";
 import PaymentHistory from "./pages/PaymentHistory";
 import Pricing from "./pages/Pricing";
-import Invoices from "./pages/Invoices";
+import MyPayments from "./pages/MyPayments";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -53,7 +53,7 @@ const App = () => (
             <Route path="/top-up" element={<TopUp />} />
             <Route path="/payment-history" element={<PaymentHistory />} />
             <Route path="/pricing" element={<Pricing />} />
-            <Route path="/invoices" element={<Invoices />} />
+            <Route path="/my-payments" element={<MyPayments />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

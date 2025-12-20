@@ -16,6 +16,7 @@ interface Payment {
   payment_method: string;
   subscription_plan: string;
   token_type: string;
+  invoice_no: string | null;
   created_at: string;
   verified_at: string;
 }
@@ -45,7 +46,7 @@ export const generateInvoicePDF = async (payment: Payment, customerName: string)
   // Invoice Details
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  const invoiceNumber = `INV-${payment.id.substring(0, 8).toUpperCase()}`;
+  const invoiceNumber = payment.invoice_no || `INV-${payment.id.substring(0, 8).toUpperCase()}`;
   const invoiceDate = format(new Date(payment.created_at), 'dd MMMM yyyy', { locale: idLocale });
   const verifiedDate = payment.verified_at 
     ? format(new Date(payment.verified_at), 'dd MMMM yyyy', { locale: idLocale })

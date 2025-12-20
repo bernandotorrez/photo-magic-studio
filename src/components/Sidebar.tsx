@@ -89,7 +89,7 @@ export function Sidebar({ isAdmin = false, onSignOut }: SidebarProps) {
     { icon: Key, label: 'API Keys', path: '/api-keys', badge: 'Basic+', badgeVariant: 'default' },
     { icon: BookOpen, label: 'Dokumentasi API', path: '/api-documentation' },
     { icon: CreditCard, label: 'Paket & Harga', path: '/pricing' },
-    { icon: FileText, label: 'Invoice', path: '/invoices' },
+    { icon: FileText, label: 'Pembayaran Saya', path: '/my-payments' },
     { icon: Users, label: 'Kelola User', path: '/admin/users', adminOnly: true },
     { icon: Shield, label: 'Admin Panel', path: '/admin', adminOnly: true },
     { icon: Settings, label: 'Pengaturan', path: '/settings' },
