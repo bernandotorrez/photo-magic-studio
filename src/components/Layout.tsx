@@ -35,6 +35,17 @@ export function Layout({ children }: LayoutProps) {
 
   useEffect(() => {
     if (user) {
+      // Load profile from session storage first for instant display
+      const cachedProfile = sessionStorage.getItem('userProfile');
+      if (cachedProfile) {
+        try {
+          setProfile(JSON.parse(cachedProfile));
+        } catch (e) {
+          console.error('Failed to parse cached profile:', e);
+        }
+      }
+      
+      // Then fetch fresh data in background
       fetchProfile();
     }
   }, [user]);
@@ -48,24 +59,30 @@ export function Layout({ children }: LayoutProps) {
       .eq('user_id', user.id)
       .maybeSingle();
     
-    if (data && user.email) {
-      // Get actual generation count by email
-      const { data: emailCount } = await supabase
-        .rpc('get_generation_count_by_email', { p_email: user.email });
-      
-      // Update profile with email-based count
-      setProfile({
-        ...data,
-        current_month_generates: emailCount || 0
-      });
-    } else if (data) {
+    if (data) {
       setProfile(data);
+      // Cache profile data (nama, plan, dll) di session storage
+      sessionStorage.setItem('userProfile', JSON.stringify(data));
     }
   };
 
   const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
+    try {
+      // Sign out from Supabase (this will also clear storage in auth.tsx)
+      await signOut();
+      
+      // Clear profile state
+      setProfile(null);
+      
+      // Force redirect to auth page
+      navigate('/auth', { replace: true });
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Force clear and redirect even if error
+      setProfile(null);
+      sessionStorage.clear();
+      navigate('/auth', { replace: true });
+    }
   };
 
   if (loading) {
