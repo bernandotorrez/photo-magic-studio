@@ -62,12 +62,12 @@ export default function SubscriptionTiersManager() {
   const fetchTiers = async () => {
     try {
       const { data, error } = await supabase
-        .from('subscription_tiers')
+        .from('subscription_tiers' as any)
         .select('*')
         .order('display_order', { ascending: true });
 
       if (error) throw error;
-      setTiers(data || []);
+      setTiers((data as any) || []);
     } catch (error: any) {
       toast.error('Gagal memuat tier: ' + error.message);
     } finally {
@@ -186,6 +186,17 @@ export default function SubscriptionTiersManager() {
         <div>
           <h2 className="text-2xl font-bold">Kelola Subscription Tiers</h2>
           <p className="text-muted-foreground">Manage paket langganan ({tiers.length} total)</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Butuh Bantuan? Hubungi WhatsApp{' '}
+            <a 
+              href="https://wa.me/6289687610639" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-primary hover:underline font-medium"
+            >
+              +62 896-8761-0639
+            </a>
+          </p>
         </div>
         <Button onClick={handleCreate} disabled={isCreating}>
           <Plus className="w-4 h-4 mr-2" />
@@ -268,6 +279,76 @@ export default function SubscriptionTiersManager() {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Cocok untuk..."
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="features">Features (satu per baris)</Label>
+              <Textarea
+                id="features"
+                value={(formData.features || []).join('\n')}
+                onChange={(e) => setFormData({ ...formData, features: e.target.value.split('\n').filter(f => f.trim()) })}
+                placeholder="Masukkan features, satu per baris&#10;Contoh:&#10;40 token per bulan&#10;Semua fitur enhancement&#10;API access"
+                rows={6}
+                className="font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                Atau klik "Auto Generate" untuk generate otomatis dari tokens
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const autoFeatures = [];
+                  
+                  // Token info
+                  if (formData.bonus_tokens && formData.bonus_tokens > 0) {
+                    autoFeatures.push(`${formData.tokens} token + ${formData.bonus_tokens} bonus token`);
+                  } else {
+                    autoFeatures.push(`${formData.tokens} token per bulan`);
+                  }
+                  
+                  // Basic features
+                  if (formData.price === 0) {
+                    autoFeatures.push('Akses fitur dasar');
+                    autoFeatures.push('Support email');
+                    autoFeatures.push('Bisa top-up token tambahan');
+                  } else {
+                    autoFeatures.push('Semua fitur enhancement');
+                    autoFeatures.push('Tanpa watermark');
+                    autoFeatures.push('Export HD quality');
+                    
+                    if (formData.api_rate_limit && formData.api_rate_limit > 0) {
+                      autoFeatures.push(`API Access (${formData.api_rate_limit} req/min)`);
+                    }
+                    
+                    if (formData.price >= 50000) {
+                      autoFeatures.push('Priority email support');
+                      autoFeatures.push('Bulk processing');
+                    }
+                    
+                    if (formData.price >= 75000) {
+                      autoFeatures.push('Custom enhancement prompts');
+                      autoFeatures.push('Priority support (WhatsApp)');
+                      autoFeatures.push('Advanced analytics');
+                    }
+                    
+                    if (formData.price >= 100000) {
+                      autoFeatures.push('Dedicated support');
+                      autoFeatures.push('Custom AI training');
+                      autoFeatures.push('White-label option');
+                      autoFeatures.push('Early access to beta features');
+                    }
+                    
+                    autoFeatures.push('Bisa top-up token tambahan');
+                  }
+                  
+                  setFormData({ ...formData, features: autoFeatures });
+                  toast.success('Features berhasil di-generate otomatis');
+                }}
+              >
+                Auto Generate Features
+              </Button>
             </div>
 
             <div className="grid grid-cols-3 gap-4">

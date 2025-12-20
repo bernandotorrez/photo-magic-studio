@@ -323,5 +323,5 @@ Potential improvements untuk versi mendatang:
 Fitur custom input ini memberikan **kontrol lebih besar** kepada user untuk menentukan hasil generation yang diinginkan, sambil tetap mempertahankan **backward compatibility** dengan sistem existing. Implementasi dilakukan di frontend (UI), backend (API functions), dan dokumentasi lengkap untuk user dan developer.
 
 **Version:** 1.1.0  
-**Release Date:** December 19, 2024  
+**Release Date:** December 19, 2025  
 **Status:** ✅ Ready for Production

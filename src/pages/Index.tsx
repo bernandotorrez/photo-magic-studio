@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -13,6 +14,7 @@ import {
   Coins
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
+import { supabase } from '@/integrations/supabase/client';
 
 const features = [
   {
@@ -47,35 +49,63 @@ const features = [
   },
 ];
 
-const pricingPlans = [
-  {
-    name: 'Free',
-    price: 'Rp 0',
-    period: '/bulan',
-    generates: '5 generate',
-    features: ['5x generate/bulan', 'History 7 hari', 'Basic support', 'Bisa top-up token tambahan'],
-    highlighted: false,
-  },
-  {
-    name: 'Basic',
-    price: 'Rp 30.000',
-    period: '/bulan',
-    generates: '50 generate',
-    features: ['50x generate/bulan', 'History unlimited', 'API access', 'Priority support', 'Bisa top-up token tambahan'],
-    highlighted: true,
-  },
-  {
-    name: 'Pro',
-    price: 'Rp 99.000',
-    period: '/bulan',
-    generates: '200 generate',
-    features: ['200x generate/bulan', 'History unlimited', 'API access', 'Premium support', 'Custom prompts', 'Bisa top-up token tambahan'],
-    highlighted: false,
-  },
-];
+interface SubscriptionTier {
+  id: string;
+  tier_id: string;
+  tier_name: string;
+  display_order: number;
+  price: number;
+  tokens: number;
+  bonus_tokens: number;
+  description: string;
+  features: string[];
+  limitations: string[];
+  api_rate_limit: number;
+  is_popular: boolean;
+  color: string;
+  bg_color: string;
+  icon: string;
+}
 
 export default function Index() {
   const { user } = useAuth();
+  const [pricingPlans, setPricingPlans] = useState<SubscriptionTier[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchPricingPlans();
+  }, []);
+
+  const fetchPricingPlans = async () => {
+    try {
+      // Use RPC function to get active tiers
+      const { data, error } = await supabase
+        .rpc('get_active_subscription_tiers');
+
+      if (error) {
+        console.error('RPC Error:', error);
+        throw error;
+      }
+
+      console.log('Fetched pricing plans:', data);
+      setPricingPlans((data as any) || []);
+    } catch (error) {
+      console.error('Error fetching pricing plans:', error);
+      // Fallback to default plans if error
+      setPricingPlans([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatPrice = (price: number) => {
+    if (price === 0) return 'Rp 0';
+    return `Rp ${price.toLocaleString('id-ID')}`;
+  };
+
+  const isHighlighted = (isPopular: boolean) => {
+    return isPopular;
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -195,49 +225,67 @@ export default function Index() {
             </p>
           </div>
           
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 max-w-5xl mx-auto">
-            {pricingPlans.map((plan) => (
-              <div 
-                key={plan.name}
-                className={`p-4 sm:p-5 md:p-6 rounded-2xl border-2 transition-all duration-300 ${
-                  plan.highlighted 
-                    ? 'border-primary bg-card shadow-xl shadow-primary/10 sm:scale-105' 
-                    : 'border-border/50 bg-card hover:border-primary/30'
-                }`}
-              >
-                {plan.highlighted && (
-                  <div className="text-[10px] sm:text-xs font-semibold text-primary mb-3 sm:mb-4 uppercase tracking-wide">
-                    Paling Populer
-                  </div>
-                )}
-                <h3 className="text-lg sm:text-xl font-bold mb-1.5 sm:mb-2">{plan.name}</h3>
-                <div className="mb-3 sm:mb-4">
-                  <span className="text-2xl sm:text-3xl font-extrabold">{plan.price}</span>
-                  <span className="text-sm sm:text-base text-muted-foreground">{plan.period}</span>
-                </div>
-                <div className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-6">
-                  {plan.generates}/bulan
-                </div>
-                <ul className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2 text-xs sm:text-sm">
-                      <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent flex-shrink-0 mt-0.5" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link to="/auth">
-                  <Button 
-                    className="w-full text-sm" 
-                    variant={plan.highlighted ? 'hero' : 'outline'}
-                    size="sm"
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : pricingPlans.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Pricing plans tidak tersedia saat ini</p>
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 max-w-5xl mx-auto">
+              {pricingPlans.map((plan) => {
+                const highlighted = isHighlighted(plan.is_popular);
+                const totalTokens = plan.tokens + plan.bonus_tokens;
+                
+                return (
+                  <div 
+                    key={plan.id}
+                    className={`p-4 sm:p-5 md:p-6 rounded-2xl border-2 transition-all duration-300 ${
+                      highlighted 
+                        ? 'border-primary bg-card shadow-xl shadow-primary/10 sm:scale-105' 
+                        : 'border-border/50 bg-card hover:border-primary/30'
+                    }`}
                   >
-                    Pilih Paket
-                  </Button>
-                </Link>
-              </div>
-            ))}
-          </div>
+                    {highlighted && (
+                      <div className="text-[10px] sm:text-xs font-semibold text-primary mb-3 sm:mb-4 uppercase tracking-wide">
+                        Paling Populer
+                      </div>
+                    )}
+                    <h3 className="text-lg sm:text-xl font-bold mb-1.5 sm:mb-2">{plan.tier_name}</h3>
+                    <div className="mb-3 sm:mb-4">
+                      <span className="text-2xl sm:text-3xl font-extrabold">{formatPrice(plan.price)}</span>
+                      <span className="text-sm sm:text-base text-muted-foreground">/bulan</span>
+                    </div>
+                    <div className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-6">
+                      {plan.tokens} generate/bulan
+                      {plan.bonus_tokens > 0 && (
+                        <span className="text-green-600 font-medium"> +{plan.bonus_tokens} bonus</span>
+                      )}
+                    </div>
+                    <ul className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
+                      {plan.features.map((feature, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-xs sm:text-sm">
+                          <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent flex-shrink-0 mt-0.5" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <Link to="/auth">
+                      <Button 
+                        className="w-full text-sm" 
+                        variant={highlighted ? 'hero' : 'outline'}
+                        size="sm"
+                      >
+                        Pilih Paket
+                      </Button>
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* Top Up Info */}
           <div className="mt-10 sm:mt-12 md:mt-16 max-w-3xl mx-auto">
@@ -271,7 +319,7 @@ export default function Index() {
                     </div>
                   </div>
 
-                  <div className="space-y-1.5 text-xs sm:text-sm">
+                  {/* <div className="space-y-1.5 text-xs sm:text-sm">
                     <p className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-accent" />
                       <span>Transfer ke rekening <strong>BCA 2040239483</strong> a.n. <strong>Bernand Dayamuntari Hermawan</strong></span>
@@ -288,7 +336,7 @@ export default function Index() {
                       <Check className="w-4 h-4 text-accent" />
                       <span>Token langsung masuk ke akun Anda setelah diverifikasi</span>
                     </p>
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </div>
@@ -333,9 +381,22 @@ export default function Index() {
               </div>
               <span className="font-semibold text-sm sm:text-base">EnhanceAI</span>
             </div>
-            <p className="text-xs sm:text-sm text-muted-foreground text-center">
-              © 2024 EnhanceAI. All rights reserved.
-            </p>
+            <div className="flex flex-col items-center gap-1">
+              <p className="text-xs sm:text-sm text-muted-foreground text-center">
+                © 2025 EnhanceAI. All rights reserved.
+              </p>
+              <p className="text-xs sm:text-sm text-muted-foreground text-center">
+                Butuh Bantuan? Hubungi WhatsApp{' '}
+                <a 
+                  href="https://wa.me/6289687610639" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline font-medium"
+                >
+                  +62 896-8761-0639
+                </a>
+              </p>
+            </div>
           </div>
         </div>
       </footer>

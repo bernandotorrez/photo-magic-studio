@@ -131,7 +131,7 @@ Fitur:
 
 ## 📝 Changelog
 
-### v1.0.0 (2024-12-19)
+### v1.0.0 (2025-12-19)
 - Initial API release
 - 9 enhancement types
 - Watermark support

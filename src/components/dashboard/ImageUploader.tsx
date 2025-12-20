@@ -10,8 +10,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Upload, Image as ImageIcon, Loader2, Link as LinkIcon } from 'lucide-react';
 
 interface Profile {
-  monthly_generate_limit: number;
-  current_month_generates: number;
+  subscription_tokens: number;
+  purchased_tokens: number;
+  subscription_expires_at: string | null;
 }
 
 interface ImageUploaderProps {
@@ -44,10 +45,11 @@ export function ImageUploader({ onImageUploaded, profile, classifyFunction = 'cl
     return data;
   };
 
-  // Only check limit if profile is loaded
-  const canGenerate = profile 
-    ? profile.current_month_generates < profile.monthly_generate_limit 
-    : true; // Allow during loading to prevent false error message
+  // Check if user has tokens
+  const subscriptionTokens = profile?.subscription_tokens || 0;
+  const purchasedTokens = profile?.purchased_tokens || 0;
+  const totalTokens = subscriptionTokens + purchasedTokens;
+  const canGenerate = !profile || totalTokens > 0; // Allow during loading or if has tokens
 
   const onDrop = useCallback(async (acceptedFiles: File[], rejectedFiles: any[]) => {
     // Handle rejected files (too large, wrong format, etc.)
@@ -83,8 +85,8 @@ export function ImageUploader({ onImageUploaded, profile, classifyFunction = 'cl
     // Check limit only if profile is loaded
     if (profile && !canGenerate) {
       toast({
-        title: 'Limit Tercapai',
-        description: 'Anda sudah mencapai batas generate bulan ini. Upgrade paket untuk melanjutkan.',
+        title: 'Token Habis',
+        description: `Token Anda sudah habis (${subscriptionTokens} bulanan + ${purchasedTokens} top-up = ${totalTokens} total). Silakan top up untuk melanjutkan.`,
         variant: 'destructive',
       });
       return;
@@ -146,8 +148,8 @@ export function ImageUploader({ onImageUploaded, profile, classifyFunction = 'cl
     // Check limit only if profile is loaded
     if (profile && !canGenerate) {
       toast({
-        title: 'Limit Tercapai',
-        description: 'Anda sudah mencapai batas generate bulan ini. Upgrade paket untuk melanjutkan.',
+        title: 'Token Habis',
+        description: `Token Anda sudah habis (${subscriptionTokens} bulanan + ${purchasedTokens} top-up = ${totalTokens} total). Silakan top up untuk melanjutkan.`,
         variant: 'destructive',
       });
       return;
@@ -256,14 +258,14 @@ export function ImageUploader({ onImageUploaded, profile, classifyFunction = 'cl
 
   return (
     <div className="space-y-4">
-      {/* Only show limit warning if profile is loaded and limit is reached */}
+      {/* Only show limit warning if profile is loaded and no tokens */}
       {profile && !canGenerate && (
         <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-center">
           <p className="text-sm text-destructive font-medium">
-            Anda sudah mencapai batas generate bulan ini ({profile.current_month_generates}/{profile.monthly_generate_limit}).
+            Token Anda sudah habis ({subscriptionTokens} bulanan + {purchasedTokens} top-up = {totalTokens} total).
           </p>
           <p className="text-sm text-muted-foreground mt-1">
-            Upgrade paket untuk melanjutkan.
+            Silakan top up token untuk melanjutkan generate.
           </p>
         </div>
       )}

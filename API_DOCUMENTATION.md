@@ -780,7 +780,7 @@ Jika Anda mengalami masalah atau memiliki pertanyaan:
 
 ## Changelog
 
-### Version 2.0.0 (2024-12-20)
+### Version 2.0.0 (2025-12-20)
 - **NEW:** 12 kategori produk lengkap (clothing, shoes, bags, accessories, jewelry, headwear, eyewear, beauty, electronics, home, sports, kids)
 - **NEW:** Enhancement options dengan emoji untuk setiap kategori
 - **NEW:** Hugging Face AI classification untuk deteksi kategori otomatis
@@ -790,13 +790,13 @@ Jika Anda mengalami masalah atau memiliki pertanyaan:
 - Enhanced prompt generation untuk hasil lebih profesional
 - Updated documentation dengan contoh lengkap untuk semua kategori
 
-### Version 1.1.0 (2024-12-19)
+### Version 1.1.0 (2025-12-19)
 - **NEW:** Custom pose input untuk AI Photographer
 - **NEW:** Custom furniture items input untuk Interior Design
 - Improved flexibility untuk user-defined enhancements
 - Updated documentation dengan contoh lengkap
 
-### Version 1.0.0 (2024-12-19)
+### Version 1.0.0 (2025-12-19)
 - Initial release
 - Support untuk 9 enhancement types
 - Watermark support (text & logo)

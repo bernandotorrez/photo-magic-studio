@@ -27,8 +27,9 @@ interface Profile {
   id: string;
   full_name: string | null;
   subscription_plan: string;
-  monthly_generate_limit: number;
-  current_month_generates: number;
+  subscription_tokens: number;
+  purchased_tokens: number;
+  subscription_expires_at: string | null;
   is_admin: boolean;
 }
 
@@ -86,21 +87,11 @@ export default function Dashboard() {
     
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, full_name, subscription_plan, subscription_tokens, purchased_tokens, subscription_expires_at, is_admin')
       .eq('user_id', user.id)
       .maybeSingle();
     
-    if (data && user.email) {
-      // Get actual generation count by email
-      const { data: emailCount } = await supabase
-        .rpc('get_generation_count_by_email', { p_email: user.email });
-      
-      // Update profile with email-based count
-      setProfile({
-        ...data,
-        current_month_generates: emailCount || 0
-      });
-    } else if (data) {
+    if (data) {
       setProfile(data);
     }
   };
@@ -266,6 +257,25 @@ export default function Dashboard() {
           </Tabs>
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="border-t border-border/50 py-4 sm:py-6 px-3 sm:px-4 mt-8">
+        <div className="container mx-auto">
+          <div className="max-w-5xl mx-auto text-center">
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Butuh Bantuan? Hubungi WhatsApp{' '}
+              <a 
+                href="https://wa.me/6289687610639" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-primary hover:underline font-medium"
+              >
+                +62 896-8761-0639
+              </a>
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

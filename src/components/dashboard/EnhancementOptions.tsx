@@ -10,8 +10,9 @@ import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Wand2, Loader2, Check, Sparkles, Image as ImageIcon, Type, Upload, Download } from 'lucide-react';
 
 interface Profile {
-  monthly_generate_limit: number;
-  current_month_generates: number;
+  subscription_tokens: number;
+  purchased_tokens: number;
+  subscription_expires_at: string | null;
 }
 
 interface GeneratedResult {
@@ -94,13 +95,13 @@ export function EnhancementOptions({
   const handleGenerate = async () => {
     if (selectedEnhancements.length === 0 || !user) return;
     
-    // Check if user has enough remaining generations (only need 1 token now)
+    // Check if user has enough tokens (dual token system)
     if (profile) {
-      const remaining = profile.monthly_generate_limit - profile.current_month_generates;
-      if (remaining < 1) {
+      const totalTokens = (profile.subscription_tokens || 0) + (profile.purchased_tokens || 0);
+      if (totalTokens < 1) {
         toast({
-          title: 'Kuota Tidak Cukup',
-          description: `Sisa kuota Anda hanya ${remaining}. Upgrade paket untuk melanjutkan.`,
+          title: 'Token Habis',
+          description: 'Token Anda sudah habis. Silakan top up untuk melanjutkan.',
           variant: 'destructive',
         });
         return;
@@ -384,7 +385,12 @@ export function EnhancementOptions({
 
             {profile && (
               <p className="text-xs text-muted-foreground text-center px-2">
-                Sisa generate: {profile.monthly_generate_limit - profile.current_month_generates} dari {profile.monthly_generate_limit}
+                Sisa token: {(profile.subscription_tokens || 0) + (profile.purchased_tokens || 0)} token
+                {profile.subscription_tokens > 0 && profile.purchased_tokens > 0 && (
+                  <span className="block mt-1">
+                    ({profile.subscription_tokens} bulanan + {profile.purchased_tokens} top-up)
+                  </span>
+                )}
               </p>
             )}
           </div>
