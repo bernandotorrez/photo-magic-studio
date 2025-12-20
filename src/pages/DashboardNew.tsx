@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { 
   Zap,
   History, 
   Key,
-  Image as ImageIcon
+  Image as ImageIcon,
+  AlertCircle,
+  Coins
 } from 'lucide-react';
 import { ImageUploader } from '@/components/dashboard/ImageUploader';
 import { EnhancementOptions } from '@/components/dashboard/EnhancementOptions';
@@ -37,6 +40,7 @@ type GenerationStep = 'upload' | 'options' | 'result';
 
 export default function DashboardNew() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -149,11 +153,65 @@ export default function DashboardNew() {
           </TabsList>
 
           <TabsContent value="generate" className="space-y-4">
+            {/* Quota Exceeded Alert */}
+            {profile && profile.current_month_generates >= profile.monthly_generate_limit && (
+              <Alert className="border-red-500/50 bg-red-500/5">
+                <AlertCircle className="h-4 w-4 text-red-500" />
+                <AlertTitle className="text-red-500">Kuota Generate Habis</AlertTitle>
+                <AlertDescription className="space-y-3">
+                  <p>
+                    Anda sudah menggunakan <strong>{profile.current_month_generates}</strong> dari <strong>{profile.monthly_generate_limit}</strong> generate bulan ini.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => navigate('/top-up')}
+                      size="sm"
+                      className="bg-red-500 hover:bg-red-600"
+                    >
+                      <Coins className="w-4 h-4 mr-2" />
+                      Top Up Token Sekarang
+                    </Button>
+                    <Button 
+                      onClick={() => navigate('/payment-history')}
+                      size="sm"
+                      variant="outline"
+                    >
+                      Lihat Riwayat Pembayaran
+                    </Button>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Low Quota Warning */}
+            {profile && 
+             profile.current_month_generates < profile.monthly_generate_limit &&
+             profile.current_month_generates >= profile.monthly_generate_limit * 0.8 && (
+              <Alert className="border-yellow-500/50 bg-yellow-500/5">
+                <AlertCircle className="h-4 w-4 text-yellow-500" />
+                <AlertTitle className="text-yellow-500">Kuota Hampir Habis</AlertTitle>
+                <AlertDescription className="space-y-3">
+                  <p>
+                    Anda sudah menggunakan <strong>{profile.current_month_generates}</strong> dari <strong>{profile.monthly_generate_limit}</strong> generate. 
+                    Sisa <strong>{profile.monthly_generate_limit - profile.current_month_generates}</strong> generate lagi.
+                  </p>
+                  <Button 
+                    onClick={() => navigate('/top-up')}
+                    size="sm"
+                    variant="outline"
+                  >
+                    <Coins className="w-4 h-4 mr-2" />
+                    Top Up Token
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <Alert className="border-blue-500/50 bg-blue-500/5">
               <ImageIcon className="h-4 w-4 text-blue-500" />
               <AlertTitle className="text-blue-500">Produk yang Didukung</AlertTitle>
               <AlertDescription>
-                Optimasi gambar untuk produk e-commerce seperti <strong>baju, jaket, sweater, dress, celana, sepatu, tas, dompet, aksesoris, jam tangan, kalung, gelang, cincin, topi, kacamata</strong>, dan produk fashion lainnya.
+                Optimasi gambar untuk produk e-commerce seperti <strong>baju, jaket, sweater, dress, celana, sepatu, tas, dompet, aksesoris, jam tangan, kalung, gelang, cincin, topi, kacamata, produk kecantikan (parfum, skin care, dll)</strong>, dan produk fashion lainnya.
               </AlertDescription>
             </Alert>
 

@@ -18,6 +18,8 @@ import ManageUsers from "./pages/ManageUsers";
 import Settings from "./pages/Settings";
 import ApiKeys from "./pages/ApiKeys";
 import ApiDocumentationPage from "./pages/ApiDocumentation";
+import TopUp from "./pages/TopUp";
+import PaymentHistory from "./pages/PaymentHistory";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +46,8 @@ const App = () => (
             <Route path="/settings" element={<Settings />} />
             <Route path="/api-keys" element={<ApiKeys />} />
             <Route path="/api-documentation" element={<ApiDocumentationPage />} />
+            <Route path="/top-up" element={<TopUp />} />
+            <Route path="/payment-history" element={<PaymentHistory />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

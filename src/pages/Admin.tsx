@@ -10,6 +10,7 @@ import { Analytics } from '@/components/admin/Analytics';
 import { AdminSettings } from '@/components/admin/AdminSettings';
 import EnhancementPromptsManager from '@/components/admin/EnhancementPromptsManager';
 import CategoryEnhancementMapper from '@/components/admin/CategoryEnhancementMapper';
+import PaymentManagement from '@/components/admin/PaymentManagement';
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -85,6 +86,8 @@ export default function Admin() {
         return <EnhancementPromptsManager />;
       case 'mappings':
         return <CategoryEnhancementMapper />;
+      case 'payments':
+        return <PaymentManagement />;
       case 'generations':
         return (
           <div className="space-y-6">
@@ -130,7 +133,7 @@ export default function Admin() {
       {/* Mobile Sidebar - Responsive */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t">
         <div className="flex justify-around p-2">
-          {['dashboard', 'users', 'enhancements', 'mappings', 'generations', 'settings'].map((section) => (
+          {['dashboard', 'users', 'payments', 'enhancements', 'mappings', 'generations', 'settings'].map((section) => (
             <button
               key={section}
               onClick={() => setActiveSection(section)}

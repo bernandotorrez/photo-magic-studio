@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { 
   Sparkles, 
   Wand2, 
@@ -8,7 +9,8 @@ import {
   Shield, 
   History,
   ArrowRight,
-  Check
+  Check,
+  Coins
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 
@@ -51,7 +53,7 @@ const pricingPlans = [
     price: 'Rp 0',
     period: '/bulan',
     generates: '5 generate',
-    features: ['5x generate/bulan', 'History 7 hari', 'Basic support'],
+    features: ['5x generate/bulan', 'History 7 hari', 'Basic support', 'Bisa top-up token tambahan'],
     highlighted: false,
   },
   {
@@ -59,7 +61,7 @@ const pricingPlans = [
     price: 'Rp 30.000',
     period: '/bulan',
     generates: '50 generate',
-    features: ['50x generate/bulan', 'History unlimited', 'API access', 'Priority support'],
+    features: ['50x generate/bulan', 'History unlimited', 'API access', 'Priority support', 'Bisa top-up token tambahan'],
     highlighted: true,
   },
   {
@@ -67,7 +69,7 @@ const pricingPlans = [
     price: 'Rp 99.000',
     period: '/bulan',
     generates: '200 generate',
-    features: ['200x generate/bulan', 'History unlimited', 'API access', 'Premium support', 'Custom prompts'],
+    features: ['200x generate/bulan', 'History unlimited', 'API access', 'Premium support', 'Custom prompts', 'Bisa top-up token tambahan'],
     highlighted: false,
   },
 ];
@@ -132,6 +134,8 @@ export default function Index() {
             <p className="text-sm sm:text-base md:text-lg lg:text-xl text-primary-foreground/70 mb-6 sm:mb-8 max-w-2xl mx-auto animate-slide-up-delay-2 px-2">
               Platform AI yang mengubah foto produk biasa menjadi luar biasa. 
               Tambahkan model, perbaiki background, dan banyak lagi dengan satu klik.
+              <br />
+              <span className="text-accent font-medium">Bisa top up token tambahan kapan saja!</span>
             </p>
             
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center animate-slide-up-delay-3 px-2">
@@ -187,7 +191,7 @@ export default function Index() {
               Pilih <span className="gradient-text">Paket</span> Anda
             </h2>
             <p className="text-muted-foreground text-sm sm:text-base md:text-lg max-w-2xl mx-auto px-2">
-              Mulai gratis dan upgrade kapan saja sesuai kebutuhan
+              Mulai gratis dan upgrade kapan saja sesuai kebutuhan. Semua paket bisa top up token tambahan!
             </p>
           </div>
           
@@ -233,6 +237,61 @@ export default function Index() {
                 </Link>
               </div>
             ))}
+          </div>
+
+          {/* Top Up Info */}
+          <div className="mt-10 sm:mt-12 md:mt-16 max-w-3xl mx-auto">
+            <div className="p-4 sm:p-6 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0">
+                  <Coins className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-base sm:text-lg font-bold mb-2">Top Up Token Tambahan</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-3">
+                    Kehabisan token? Tidak perlu upgrade paket! Anda bisa membeli token tambahan kapan saja dengan sistem top up.
+                  </p>
+                  
+                  {/* Pricing Tiers */}
+                  <div className="mb-3 p-3 bg-background/50 rounded-lg space-y-1.5">
+                    <p className="text-xs font-semibold text-foreground mb-2">Harga Token:</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">1-100</Badge>
+                        <span className="text-muted-foreground">Rp 1.000/token</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">101-200</Badge>
+                        <span className="text-muted-foreground">Rp 950/token</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">201+</Badge>
+                        <span className="text-muted-foreground">Rp 900/token</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs sm:text-sm">
+                    <p className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-accent" />
+                      <span>Transfer ke rekening <strong>BCA 2040239483</strong> a.n. <strong>Bernand Dayamuntari Hermawan</strong></span>
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-accent" />
+                      <span>Upload bukti transfer untuk konfirmasi pembayaran</span>
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-accent" />
+                      <span>Konfirmasi pembayaran maksimal <strong>1 hari kerja</strong></span>
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-accent" />
+                      <span>Token langsung masuk ke akun Anda setelah diverifikasi</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>

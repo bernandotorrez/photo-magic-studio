@@ -9,7 +9,8 @@ import {
   Shield,
   Home,
   Wand2,
-  Link2
+  Link2,
+  CreditCard
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -30,6 +31,12 @@ const menuItems = [
     label: 'Kelola User',
     icon: Users,
     description: 'Manage users & subscriptions',
+  },
+  {
+    id: 'payments',
+    label: 'Payments',
+    icon: CreditCard,
+    description: 'Manage token purchases',
   },
   {
     id: 'enhancements',
