@@ -16,7 +16,8 @@ import {
   Camera,
   Home,
   Building2,
-  Shirt
+  Shirt,
+  Rocket
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -74,6 +75,14 @@ export function Sidebar({ isAdmin = false, onSignOut }: SidebarProps) {
       badge: 'New',
       badgeVariant: 'secondary',
       info: 'AI untuk exterior & architecture - facade renovation, landscaping, time of day change, weather effects, dan architectural visualization.'
+    },
+    { 
+      icon: Rocket, 
+      label: 'More AI Features', 
+      path: '/coming-soon',
+      badge: 'Soon',
+      badgeVariant: 'outline',
+      info: 'Fitur AI baru akan segera hadir! Kami terus mengembangkan teknologi AI terbaru untuk membantu bisnis Anda.'
     },
     { icon: Key, label: 'API Keys', path: '/api-keys', badge: 'Basic+', badgeVariant: 'default' },
     { icon: BookOpen, label: 'Dokumentasi API', path: '/api-documentation' },

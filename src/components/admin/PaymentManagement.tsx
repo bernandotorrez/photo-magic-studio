@@ -13,6 +13,9 @@ interface Payment {
   id: string;
   user_email: string;
   amount: number;
+  unique_code?: number;
+  amount_with_code?: number;
+  bonus_tokens?: number;
   tokens_purchased: number;
   price_per_token: number;
   payment_status: string;
@@ -50,20 +53,32 @@ export default function PaymentManagement() {
     }
   };
 
+  const calculateBonusTokens = (paymentId: string): number => {
+    const payment = payments.find(p => p.id === paymentId);
+    if (!payment || !payment.unique_code) return 0;
+
+    // Bonus token = unique_code / 1000 (rounded down)
+    // Example: 1456 → 1 token, 456 → 0 token, 1999 → 1 token
+    return Math.floor(payment.unique_code / 1000);
+  };
+
   const handleApprove = async (paymentId: string) => {
     setProcessingId(paymentId);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Update payment status
+      const bonusTokens = calculateBonusTokens(paymentId);
+
+      // Update payment status with bonus tokens
       const { error: updateError } = await supabase
-        .from('payments')
+        .from('payments' as any)
         .update({
           payment_status: 'approved',
           verified_by: user.id,
           verified_at: new Date().toISOString(),
-          admin_notes: notes[paymentId] || null
+          admin_notes: notes[paymentId] || null,
+          bonus_tokens: bonusTokens
         })
         .eq('id', paymentId);
 
@@ -71,12 +86,16 @@ export default function PaymentManagement() {
 
       // Process payment (add tokens to user)
       const { data: success, error: processError } = await supabase
-        .rpc('process_approved_payment', { payment_id: paymentId });
+        .rpc('process_approved_payment' as any, { payment_id: paymentId });
 
       if (processError) throw processError;
       if (!success) throw new Error('Failed to process payment');
 
-      toast.success('Payment approved and tokens added to user account');
+      const message = bonusTokens > 0 
+        ? `Payment approved! ${bonusTokens} bonus token(s) dari kode unik.`
+        : 'Payment approved and tokens added to user account';
+      
+      toast.success(message);
       await fetchPayments();
     } catch (error: any) {
       toast.error('Failed to approve payment: ' + error.message);
@@ -183,11 +202,22 @@ export default function PaymentManagement() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div className="grid grid-cols-4 gap-4 text-sm">
                     <div>
-                      <p className="text-muted-foreground">Amount</p>
+                      <p className="text-muted-foreground">Subtotal</p>
                       <p className="font-medium">
                         Rp {payment.amount.toLocaleString('id-ID')}
+                      </p>
+                      {payment.unique_code && (
+                        <p className="text-xs text-accent font-mono">
+                          + {payment.unique_code}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Total Transfer</p>
+                      <p className="font-bold text-primary">
+                        Rp {(payment.amount_with_code || payment.amount).toLocaleString('id-ID')}
                       </p>
                     </div>
                     <div>
@@ -212,6 +242,17 @@ export default function PaymentManagement() {
                         <ExternalLink className="w-4 h-4 mr-2" />
                         View Payment Proof
                       </Button>
+                    </div>
+                  )}
+
+                  {payment.unique_code && calculateBonusTokens(payment.id) > 0 && (
+                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <p className="text-sm text-green-700 font-medium">
+                        🎁 Bonus Token Otomatis: +{calculateBonusTokens(payment.id)} token
+                      </p>
+                      <p className="text-xs text-green-600 mt-1">
+                        Dari kode unik {payment.unique_code} (kelipatan 1.000 = bonus token)
+                      </p>
                     </div>
                   )}
 
@@ -264,7 +305,11 @@ export default function PaymentManagement() {
                   <div className="flex justify-between items-start">
                     <div>
                       <CardTitle className="text-base">
-                        {payment.tokens_purchased} Tokens - {payment.user_email}
+                        {payment.tokens_purchased} Tokens
+                        {payment.bonus_tokens && payment.bonus_tokens > 0 && (
+                          <span className="text-green-600"> +{payment.bonus_tokens} Bonus</span>
+                        )}
+                        {' '}- {payment.user_email}
                       </CardTitle>
                       <CardDescription>
                         {format(new Date(payment.created_at), 'PPP')}
@@ -274,11 +319,22 @@ export default function PaymentManagement() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div className="grid grid-cols-4 gap-4 text-sm">
                     <div>
-                      <p className="text-muted-foreground">Amount</p>
+                      <p className="text-muted-foreground">Subtotal</p>
                       <p className="font-medium">
                         Rp {payment.amount.toLocaleString('id-ID')}
+                      </p>
+                      {payment.unique_code && (
+                        <p className="text-xs text-accent font-mono">
+                          + {payment.unique_code}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Total Transfer</p>
+                      <p className="font-bold text-primary">
+                        Rp {(payment.amount_with_code || payment.amount).toLocaleString('id-ID')}
                       </p>
                     </div>
                     <div>
@@ -290,6 +346,16 @@ export default function PaymentManagement() {
                       <p className="font-medium capitalize">{payment.payment_status}</p>
                     </div>
                   </div>
+                  {payment.bonus_tokens && payment.bonus_tokens > 0 && (
+                    <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded text-sm">
+                      <p className="font-medium text-green-700">
+                        🎁 Bonus Token: +{payment.bonus_tokens} token dari kode unik {payment.unique_code}
+                      </p>
+                      <p className="text-xs text-green-600 mt-1">
+                        Kode unik kelipatan 1.000 = bonus token otomatis
+                      </p>
+                    </div>
+                  )}
                   {payment.admin_notes && (
                     <div className="mt-3 p-2 bg-muted rounded text-sm">
                       <p className="font-medium">Notes:</p>

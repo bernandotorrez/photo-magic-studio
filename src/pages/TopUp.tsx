@@ -25,10 +25,48 @@ export default function TopUp() {
   const [pricing, setPricing] = useState<TokenPricing[]>([]);
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uniqueCode, setUniqueCode] = useState<number>(0);
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     fetchPricing();
   }, []);
+
+  // Generate unique code when token amount changes
+  useEffect(() => {
+    generateUniqueCode();
+  }, [tokenAmount, pricing]);
+
+  const generateUniqueCode = () => {
+    const baseTotal = calculateBaseTotal();
+    
+    // If total < 100.000, use 3-digit code (100-999)
+    // If total >= 100.000, use 4-digit code (1000-1999) - max 2000
+    if (baseTotal < 100000) {
+      const code = Math.floor(Math.random() * 900) + 100; // 100-999
+      setUniqueCode(code);
+    } else {
+      const code = Math.floor(Math.random() * 1000) + 1000; // 1000-1999
+      setUniqueCode(code);
+    }
+  };
+
+  const calculateBaseTotal = () => {
+    if (!pricing || pricing.length === 0) {
+      return tokenAmount * 1000;
+    }
+
+    const tier = pricing.find(p => 
+      tokenAmount >= p.min_tokens && 
+      (p.max_tokens === null || tokenAmount <= p.max_tokens)
+    );
+    
+    if (!tier) {
+      return tokenAmount * 1000;
+    }
+    
+    return tokenAmount * tier.price_per_token;
+  };
 
   const fetchPricing = async () => {
     const { data } = await supabase
@@ -43,7 +81,12 @@ export default function TopUp() {
   const calculatePrice = () => {
     if (!pricing || pricing.length === 0) {
       // Default pricing if not loaded yet
-      return { total: tokenAmount * 1000, perToken: 1000, discount: 0 };
+      return { 
+        total: tokenAmount * 1000, 
+        perToken: 1000, 
+        discount: 0,
+        totalWithCode: (tokenAmount * 1000) + uniqueCode
+      };
     }
 
     const tier = pricing.find(p => 
@@ -53,13 +96,21 @@ export default function TopUp() {
     
     if (!tier) {
       // Fallback to default
-      return { total: tokenAmount * 1000, perToken: 1000, discount: 0 };
+      return { 
+        total: tokenAmount * 1000, 
+        perToken: 1000, 
+        discount: 0,
+        totalWithCode: (tokenAmount * 1000) + uniqueCode
+      };
     }
     
+    const baseTotal = tokenAmount * tier.price_per_token;
+    
     return {
-      total: tokenAmount * tier.price_per_token,
+      total: baseTotal,
       perToken: tier.price_per_token,
-      discount: tier.discount_percentage
+      discount: tier.discount_percentage,
+      totalWithCode: baseTotal + uniqueCode
     };
   };
 
@@ -67,7 +118,47 @@ export default function TopUp() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setPaymentProof(e.target.files[0]);
+      const file = e.target.files[0];
+      validateAndSetFile(file);
+    }
+  };
+
+  const validateAndSetFile = (file: File) => {
+    // Check file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('File harus berupa gambar (JPG, PNG, WEBP) atau PDF');
+      return;
+    }
+
+    // Check file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      toast.error('Ukuran file maksimal 5MB');
+      return;
+    }
+
+    setPaymentProof(file);
+    toast.success('File berhasil dipilih');
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      validateAndSetFile(file);
     }
   };
 
@@ -127,6 +218,8 @@ export default function TopUp() {
           user_id: user.id,
           user_email: user.email,
           amount: price.total,
+          unique_code: uniqueCode,
+          amount_with_code: price.totalWithCode,
           tokens_purchased: tokenAmount,
           price_per_token: price.perToken,
           payment_method: 'bank_transfer',
@@ -238,10 +331,23 @@ export default function TopUp() {
                     </div>
                   )}
                   <Separator />
-                  <div className="flex justify-between text-lg font-bold">
-                    <span>Total:</span>
-                    <span className="text-primary">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Subtotal:</span>
+                    <span className="font-medium">
                       Rp {price.total.toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Kode Unik:</span>
+                    <span className="font-medium text-accent">
+                      +{uniqueCode}
+                    </span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between text-lg font-bold">
+                    <span>Total Transfer:</span>
+                    <span className="text-primary">
+                      Rp {price.totalWithCode.toLocaleString('id-ID')}
                     </span>
                   </div>
                 </div>
@@ -280,35 +386,95 @@ export default function TopUp() {
                   <div>
                     <Label className="text-xs text-muted-foreground">Jumlah Transfer</Label>
                     <p className="text-2xl font-bold text-primary">
-                      Rp {price.total.toLocaleString('id-ID')}
+                      Rp {price.totalWithCode.toLocaleString('id-ID')}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      (Rp {price.total.toLocaleString('id-ID')} + kode unik {uniqueCode})
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="proof">Upload Bukti Transfer *</Label>
-                  <Input
-                    id="proof"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                  />
-                  {paymentProof && (
-                    <p className="text-sm text-muted-foreground">
-                      Terpilih: {paymentProof.name}
-                    </p>
-                  )}
+                  <div
+                    className={`relative border-2 border-dashed rounded-lg p-4 transition-colors ${
+                      isDragging
+                        ? 'border-primary bg-primary/5'
+                        : paymentProof
+                        ? 'border-green-500 bg-green-50'
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
+                    <input
+                      id="proof"
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
+                      onChange={handleFileChange}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <div className="text-center">
+                      {paymentProof ? (
+                        <div className="space-y-2">
+                          <CheckCircle2 className="w-8 h-8 text-green-500 mx-auto" />
+                          <p className="text-sm font-medium text-green-700">
+                            {paymentProof.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {(paymentProof.size / 1024).toFixed(1)} KB
+                          </p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPaymentProof(null);
+                            }}
+                          >
+                            Ganti File
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <Upload className="w-8 h-8 text-muted-foreground mx-auto" />
+                          <div>
+                            <p className="text-sm font-medium">
+                              Drag & drop atau klik untuk upload
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              JPG, PNG, WEBP, atau PDF (Max 5MB)
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-2 text-sm text-muted-foreground">
                   <p className="font-medium text-foreground">Langkah-langkah:</p>
                   <ol className="list-decimal list-inside space-y-1">
-                    <li>Transfer sejumlah <strong>Rp {price.total.toLocaleString('id-ID')}</strong> ke rekening BCA <strong>2040239483</strong> a.n. <strong>Bernand Dayamuntari Hermawan</strong></li>
+                    <li>Transfer <strong className="text-primary">TEPAT</strong> sejumlah <strong>Rp {price.totalWithCode.toLocaleString('id-ID')}</strong> (sudah termasuk kode unik <strong className="text-accent">{uniqueCode}</strong>) ke rekening BCA <strong>2040239483</strong> a.n. <strong>Bernand Dayamuntari Hermawan</strong></li>
+                    <li>Kode unik membantu kami mengidentifikasi pembayaran Anda dengan cepat</li>
                     <li>Screenshot bukti transfer dari mobile banking Anda</li>
                     <li>Upload screenshot sebagai bukti pembayaran di form ini</li>
                     <li>Klik tombol "Submit Pembayaran" dan tunggu verifikasi admin</li>
                     <li>Konfirmasi pembayaran maksimal <strong>1 hari kerja</strong></li>
                   </ol>
+                  <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="font-medium text-green-700 text-sm mb-1">💡 Tips Bonus Token:</p>
+                    <p className="text-xs text-green-600">
+                      Jika kode unik Anda <strong>kelipatan Rp 1.000</strong>, 
+                      Anda akan mendapat <strong>bonus token otomatis</strong>!
+                    </p>
+                    <p className="text-xs text-green-600 mt-1">
+                      Contoh: Kode unik <strong>{uniqueCode >= 1000 ? uniqueCode : '1456'}</strong> 
+                      → Dapat <strong>+{uniqueCode >= 1000 ? Math.floor(uniqueCode / 1000) : '1'} bonus token</strong> 🎁
+                    </p>
+                  </div>
                 </div>
 
                 <Button
