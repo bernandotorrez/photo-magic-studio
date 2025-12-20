@@ -353,6 +353,36 @@ export default function TopUp() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Status Info - Moved to left column */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Informasi Status Pembayaran</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex items-start gap-2">
+                  <Clock className="w-4 h-4 mt-0.5 text-yellow-500" />
+                  <div>
+                    <p className="font-medium">Pending (Menunggu)</p>
+                    <p className="text-muted-foreground">Pembayaran Anda sedang dalam proses verifikasi oleh admin. Konfirmasi maksimal 1 hari kerja.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 mt-0.5 text-green-500" />
+                  <div>
+                    <p className="font-medium">Disetujui (Approved)</p>
+                    <p className="text-muted-foreground">Pembayaran berhasil diverifikasi. Token sudah ditambahkan ke akun Anda dan siap digunakan.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 mt-0.5 text-red-500" />
+                  <div>
+                    <p className="font-medium">Ditolak (Rejected)</p>
+                    <p className="text-muted-foreground">Verifikasi pembayaran gagal. Silakan hubungi admin atau coba lagi dengan bukti transfer yang valid.</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Right: Payment Instructions */}
@@ -495,36 +525,6 @@ export default function TopUp() {
                     </>
                   )}
                 </Button>
-              </CardContent>
-            </Card>
-
-            {/* Status Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Informasi Status Pembayaran</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="flex items-start gap-2">
-                  <Clock className="w-4 h-4 mt-0.5 text-yellow-500" />
-                  <div>
-                    <p className="font-medium">Pending (Menunggu)</p>
-                    <p className="text-muted-foreground">Pembayaran Anda sedang dalam proses verifikasi oleh admin. Konfirmasi maksimal 1 hari kerja.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 mt-0.5 text-green-500" />
-                  <div>
-                    <p className="font-medium">Disetujui (Approved)</p>
-                    <p className="text-muted-foreground">Pembayaran berhasil diverifikasi. Token sudah ditambahkan ke akun Anda dan siap digunakan.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 mt-0.5 text-red-500" />
-                  <div>
-                    <p className="font-medium">Ditolak (Rejected)</p>
-                    <p className="text-muted-foreground">Verifikasi pembayaran gagal. Silakan hubungi admin atau coba lagi dengan bukti transfer yang valid.</p>
-                  </div>
-                </div>
               </CardContent>
             </Card>
           </div>
