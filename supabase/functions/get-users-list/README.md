@@ -25,7 +25,7 @@ This edge function retrieves a list of all non-admin users with their email addr
       "subscription_plan": "free",
       "monthly_generate_limit": 3,
       "current_month_generates": 1,
-      "created_at": "2024-01-01T00:00:00Z"
+      "created_at": "2025-01-01T00:00:00Z"
     }
   ]
 }

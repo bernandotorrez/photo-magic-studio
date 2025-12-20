@@ -177,5 +177,5 @@ Jika ada pertanyaan atau butuh bantuan:
 
 ---
 
-**Last Updated:** 2024-12-19
+**Last Updated:** 2025-12-19
 **Version:** 1.0.0

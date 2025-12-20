@@ -191,9 +191,9 @@ Semua code examples (cURL, JavaScript, Python, PHP, Node.js) updated dengan:
 
 ## Version History
 
-- **V2.0.0** (2024-12-20) - 12 categories, emoji enhancements, Hugging Face AI
-- **V1.1.0** (2024-12-19) - Custom pose & furniture
-- **V1.0.0** (2024-12-19) - Initial release
+- **V2.0.0** (2025-12-20) - 12 categories, emoji enhancements, Hugging Face AI
+- **V1.1.0** (2025-12-19) - Custom pose & furniture
+- **V1.0.0** (2025-12-19) - Initial release
 
 ## Contact & Support
 

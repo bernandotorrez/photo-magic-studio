@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { Layout } from '@/components/Layout';
@@ -32,7 +32,7 @@ export default function ExteriorDesign() {
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Fetch profile on mount
-  useState(() => {
+  useEffect(() => {
     const fetchProfile = async () => {
       if (user) {
         const { data } = await supabase
@@ -46,7 +46,19 @@ export default function ExteriorDesign() {
     };
     
     fetchProfile();
-  });
+  }, [user]);
+
+  const refreshProfile = async () => {
+    if (user) {
+      const { data } = await supabase
+        .from('profiles')
+        .select('subscription_tokens, purchased_tokens, subscription_expires_at')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (data) setProfile(data);
+    }
+  };
 
   const handleImageUploaded = (url: string, path: string, classif: string, options: string[]) => {
     setImageUrl(url);
@@ -68,6 +80,7 @@ export default function ExteriorDesign() {
 
   const handleGenerate = (results: GeneratedResult[]) => {
     setGeneratedResults(results);
+    refreshProfile(); // Refresh token count after generation
   };
 
   return (

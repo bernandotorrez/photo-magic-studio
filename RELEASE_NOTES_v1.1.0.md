@@ -1,6 +1,6 @@
 # Release Notes - Version 1.1.0
 
-**Release Date:** December 19, 2024
+**Release Date:** December 19, 2025
 
 ## 🎉 What's New
 
