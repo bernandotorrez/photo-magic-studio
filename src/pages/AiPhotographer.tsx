@@ -9,8 +9,9 @@ import { Camera, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface Profile {
-  monthly_generate_limit: number;
-  current_month_generates: number;
+  subscription_tokens: number;
+  purchased_tokens: number;
+  subscription_expires_at: string | null;
 }
 
 interface GeneratedResult {
@@ -35,7 +36,7 @@ export default function AiPhotographer() {
       if (user) {
         const { data } = await supabase
           .from('profiles')
-          .select('monthly_generate_limit, current_month_generates')
+          .select('subscription_tokens, purchased_tokens, subscription_expires_at')
           .eq('user_id', user.id)
           .single();
         

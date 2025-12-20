@@ -48,35 +48,25 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
-    // Check user's remaining generations (by email to prevent bypass)
+    // Check user's remaining tokens (dual token system)
     if (userId && userEmail) {
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('monthly_generate_limit')
+        .select('subscription_tokens, purchased_tokens')
         .eq('user_id', userId)
         .maybeSingle();
 
-      const limit = profileData?.monthly_generate_limit || 5; // Free tier default: 5 generations per month
+      const subscriptionTokens = profileData?.subscription_tokens || 0;
+      const purchasedTokens = profileData?.purchased_tokens || 0;
+      const totalTokens = subscriptionTokens + purchasedTokens;
       
-      // Count generations by email in current month
-      const { data: canGenerate, error: checkError } = await supabase
-        .rpc('can_user_generate', { 
-          p_email: userEmail,
-          p_user_id: userId 
-        });
-
-      if (checkError) {
-        console.error('Error checking generation limit:', checkError);
-      } else if (canGenerate === false) {
-        // Get actual count for error message
-        const { data: currentCount } = await supabase
-          .rpc('get_generation_count_by_email', { p_email: userEmail });
-        
+      if (totalTokens <= 0) {
         return new Response(
           JSON.stringify({ 
-            error: 'Kuota generate bulanan Anda sudah habis',
-            current: currentCount || 0,
-            limit: limit
+            error: 'Token Anda sudah habis. Silakan top up untuk melanjutkan.',
+            subscription_tokens: subscriptionTokens,
+            purchased_tokens: purchasedTokens,
+            total_tokens: totalTokens
           }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -485,13 +475,14 @@ serve(async (req) => {
             console.error('Error saving to history:', historyError);
           }
 
-          // Update user's generation count (this will count by email)
-          const { error: updateError } = await supabase.rpc('increment_generation_count', {
-            p_user_id: userId
+          // Deduct tokens using dual token system (subscription tokens first)
+          const { error: deductError } = await supabase.rpc('deduct_tokens_dual', {
+            p_user_id: userId,
+            p_amount: 1
           });
 
-          if (updateError) {
-            console.error('Error updating generation count:', updateError);
+          if (deductError) {
+            console.error('Error deducting tokens:', deductError);
           }
         }
       } catch (saveError) {
