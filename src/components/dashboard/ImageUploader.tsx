@@ -46,9 +46,9 @@ export function ImageUploader({ onImageUploaded, profile, classifyFunction = 'cl
   };
 
   // Check if user has tokens
-  const totalTokens = profile 
-    ? (profile.subscription_tokens || 0) + (profile.purchased_tokens || 0)
-    : 0;
+  const subscriptionTokens = profile?.subscription_tokens || 0;
+  const purchasedTokens = profile?.purchased_tokens || 0;
+  const totalTokens = subscriptionTokens + purchasedTokens;
   const canGenerate = !profile || totalTokens > 0; // Allow during loading or if has tokens
 
   const onDrop = useCallback(async (acceptedFiles: File[], rejectedFiles: any[]) => {
@@ -86,7 +86,7 @@ export function ImageUploader({ onImageUploaded, profile, classifyFunction = 'cl
     if (profile && !canGenerate) {
       toast({
         title: 'Token Habis',
-        description: `Token Anda sudah habis (${totalTokens} token tersisa). Silakan top up untuk melanjutkan.`,
+        description: `Token Anda sudah habis (${subscriptionTokens} bulanan + ${purchasedTokens} top-up = ${totalTokens} total). Silakan top up untuk melanjutkan.`,
         variant: 'destructive',
       });
       return;
@@ -149,7 +149,7 @@ export function ImageUploader({ onImageUploaded, profile, classifyFunction = 'cl
     if (profile && !canGenerate) {
       toast({
         title: 'Token Habis',
-        description: `Token Anda sudah habis (${totalTokens} token tersisa). Silakan top up untuk melanjutkan.`,
+        description: `Token Anda sudah habis (${subscriptionTokens} bulanan + ${purchasedTokens} top-up = ${totalTokens} total). Silakan top up untuk melanjutkan.`,
         variant: 'destructive',
       });
       return;
@@ -262,7 +262,7 @@ export function ImageUploader({ onImageUploaded, profile, classifyFunction = 'cl
       {profile && !canGenerate && (
         <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-center">
           <p className="text-sm text-destructive font-medium">
-            Token Anda sudah habis ({totalTokens} token tersisa).
+            Token Anda sudah habis ({subscriptionTokens} bulanan + {purchasedTokens} top-up = {totalTokens} total).
           </p>
           <p className="text-sm text-muted-foreground mt-1">
             Silakan top up token untuk melanjutkan generate.
