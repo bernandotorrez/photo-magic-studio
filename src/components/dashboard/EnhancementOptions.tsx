@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Wand2, Loader2, Check, Sparkles, Image as ImageIcon, Type, Upload } from 'lucide-react';
+import { ArrowLeft, Wand2, Loader2, Check, Sparkles, Image as ImageIcon, Type, Upload, Download } from 'lucide-react';
 
 interface Profile {
   monthly_generate_limit: number;
@@ -60,6 +60,9 @@ export function EnhancementOptions({
   // Custom input state
   const [customPose, setCustomPose] = useState('');
   const [customFurniture, setCustomFurniture] = useState('');
+  
+  // Generated result state
+  const [generatedResult, setGeneratedResult] = useState<GeneratedResult | null>(null);
 
   const onDropLogo = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -80,8 +83,6 @@ export function EnhancementOptions({
     disabled: isGenerating,
   });
 
-  const [generationProgress, setGenerationProgress] = useState({ current: 0, total: 0 });
-
   const handleToggleEnhancement = (enhancement: string) => {
     if (selectedEnhancements.includes(enhancement)) {
       onSelect(selectedEnhancements.filter(e => e !== enhancement));
@@ -93,13 +94,13 @@ export function EnhancementOptions({
   const handleGenerate = async () => {
     if (selectedEnhancements.length === 0 || !user) return;
     
-    // Check if user has enough remaining generations
+    // Check if user has enough remaining generations (only need 1 token now)
     if (profile) {
       const remaining = profile.monthly_generate_limit - profile.current_month_generates;
-      if (remaining < selectedEnhancements.length) {
+      if (remaining < 1) {
         toast({
           title: 'Kuota Tidak Cukup',
-          description: `Anda memilih ${selectedEnhancements.length} enhancement tapi sisa kuota hanya ${remaining}. Kurangi pilihan atau upgrade paket.`,
+          description: `Sisa kuota Anda hanya ${remaining}. Upgrade paket untuk melanjutkan.`,
           variant: 'destructive',
         });
         return;
@@ -107,7 +108,6 @@ export function EnhancementOptions({
     }
 
     setIsGenerating(true);
-    setGenerationProgress({ current: 0, total: selectedEnhancements.length });
 
     try {
       // Upload watermark logo if present
@@ -128,58 +128,54 @@ export function EnhancementOptions({
         }
       }
 
-      const results: GeneratedResult[] = [];
-      
-      // Generate images sequentially (to respect rate limits)
-      for (let i = 0; i < selectedEnhancements.length; i++) {
-        const enhancement = selectedEnhancements[i];
-        setGenerationProgress({ current: i + 1, total: selectedEnhancements.length });
+      // Combine all selected enhancements into one prompt
+      const combinedEnhancement = selectedEnhancements.join(', ');
 
-        const { data, error } = await supabase.functions.invoke('generate-enhanced-image', {
-          body: {
-            originalImagePath: imagePath,
-            classification,
-            enhancement,
-            customPose: customPose || undefined,
-            customFurniture: customFurniture || undefined,
-            watermark: watermarkType !== 'none' ? {
-              type: watermarkType,
-              text: watermarkType === 'text' ? watermarkText : undefined,
-              logoUrl: watermarkLogoUrl,
-            } : undefined,
-          },
-        });
+      const { data, error } = await supabase.functions.invoke('generate-enhanced-image', {
+        body: {
+          originalImagePath: imagePath,
+          classification,
+          enhancement: combinedEnhancement,
+          customPose: customPose || undefined,
+          customFurniture: customFurniture || undefined,
+          watermark: watermarkType !== 'none' ? {
+            type: watermarkType,
+            text: watermarkType === 'text' ? watermarkText : undefined,
+            logoUrl: watermarkLogoUrl,
+          } : undefined,
+        },
+      });
 
-        if (error) {
-          if (error.message?.includes('Rate limit')) {
-            toast({
-              title: 'Rate Limit',
-              description: 'Anda hanya bisa generate 5 kali per menit. Tunggu sebentar...',
-              variant: 'destructive',
-            });
-            // Wait 60 seconds and retry
-            await new Promise(resolve => setTimeout(resolve, 60000));
-            i--; // Retry this enhancement
-            continue;
-          }
-          throw error;
+      if (error) {
+        if (error.message?.includes('Rate limit')) {
+          toast({
+            title: 'Rate Limit',
+            description: 'Anda hanya bisa generate 5 kali per menit. Tunggu sebentar...',
+            variant: 'destructive',
+          });
+          throw new Error('Rate limit exceeded');
         }
-
-        if (data.error) {
-          throw new Error(data.error);
-        }
-
-        results.push({
-          enhancement,
-          url: data.generatedImageUrl,
-        });
+        throw error;
       }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      // Return single result with combined enhancement
+      const results: GeneratedResult[] = [{
+        enhancement: combinedEnhancement,
+        url: data.generatedImageUrl,
+      }];
+
+      // Set local state for preview
+      setGeneratedResult(results[0]);
 
       onGenerate(results);
 
       toast({
         title: 'Generate Berhasil!',
-        description: `${results.length} gambar berhasil di-generate`,
+        description: `Gambar dengan ${selectedEnhancements.length} enhancement berhasil di-generate`,
       });
     } catch (error: any) {
       console.error('Generate error:', error);
@@ -190,11 +186,27 @@ export function EnhancementOptions({
       });
     } finally {
       setIsGenerating(false);
-      setGenerationProgress({ current: 0, total: 0 });
     }
   };
 
-  const tokensNeeded = selectedEnhancements.length;
+  const handleDownload = async (url: string, enhancement: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `enhanced-${enhancement.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(downloadUrl);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Download error:', error);
+    }
+  };
+
+  const tokensNeeded = selectedEnhancements.length > 0 ? 1 : 0;
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -209,209 +221,265 @@ export function EnhancementOptions({
         </Badge>
       </div>
 
+      {/* Main Layout: Original+Watermark (left) + Options/Result (right) */}
       <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
-        {/* Preview Image */}
-        <div className="space-y-2 sm:space-y-3">
-          <h3 className="font-medium text-xs sm:text-sm text-muted-foreground">Gambar Original</h3>
-          <div className="rounded-xl overflow-hidden border border-border bg-muted/30">
-            <img 
-              src={imageUrl} 
-              alt="Original" 
-              className="w-full h-auto max-h-60 sm:max-h-80 object-contain"
-            />
-          </div>
-        </div>
-
-        {/* Enhancement Options */}
-        <div className="space-y-2 sm:space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <h3 className="font-medium text-xs sm:text-sm text-muted-foreground">Pilih Enhancement (bisa pilih lebih dari 1)</h3>
-            {tokensNeeded > 0 && (
-              <Badge variant="outline" className="text-xs w-fit">
-                {tokensNeeded} token akan digunakan
-              </Badge>
-            )}
-          </div>
-          <div className="grid gap-2 max-h-64 sm:max-h-80 overflow-y-auto">
-            {options.map((option) => {
-              const isSelected = selectedEnhancements.includes(option);
-              return (
-                <button
-                  key={option}
-                  onClick={() => handleToggleEnhancement(option)}
-                  disabled={isGenerating}
-                  className={`
-                    p-3 sm:p-4 rounded-xl border-2 text-left transition-all duration-200
-                    ${isSelected
-                      ? 'border-primary bg-primary/5 shadow-sm' 
-                      : 'border-border hover:border-primary/50'
-                    }
-                    ${isGenerating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                  `}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium text-sm sm:text-base break-words">{option}</span>
-                    {isSelected && (
-                      <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                        <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary-foreground" />
-                      </div>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Custom Input Options */}
-      {(classification === 'person' || classification === 'interior') && (
-        <div className="space-y-3 sm:space-y-4 p-3 sm:p-4 rounded-xl border border-border bg-muted/20">
-          <h3 className="font-medium text-xs sm:text-sm">
-            {classification === 'person' ? 'Custom Pose (Opsional)' : 'Custom Furniture Items (Opsional)'}
-          </h3>
-          
-          {classification === 'person' && (
-            <div className="space-y-2">
-              <Label htmlFor="custom-pose">Deskripsi Pose yang Diinginkan</Label>
-              <Input
-                id="custom-pose"
-                placeholder="Contoh: standing with arms crossed, smiling confidently"
-                value={customPose}
-                onChange={(e) => setCustomPose(e.target.value)}
-                disabled={isGenerating}
+        {/* Left Column: Original Image + Watermark Options + Generate Button */}
+        <div className="space-y-4 sm:space-y-6">
+          {/* Original Image */}
+          <div className="space-y-2 sm:space-y-3">
+            <h3 className="font-medium text-xs sm:text-sm text-muted-foreground">Gambar Original</h3>
+            <div className="rounded-xl overflow-hidden border border-border bg-muted/30">
+              <img 
+                src={imageUrl} 
+                alt="Original" 
+                className="w-full h-auto object-contain"
               />
-              <p className="text-xs text-muted-foreground">
-                Kosongkan untuk pose random. Isi untuk pose spesifik yang Anda inginkan.
-              </p>
             </div>
-          )}
-          
-          {classification === 'interior' && (
-            <div className="space-y-2">
-              <Label htmlFor="custom-furniture">Item Furniture yang Diinginkan</Label>
-              <Input
-                id="custom-furniture"
-                placeholder="Contoh: sofa, meja TV, rak buku, lemari, karpet"
-                value={customFurniture}
-                onChange={(e) => setCustomFurniture(e.target.value)}
-                disabled={isGenerating}
-              />
-              <p className="text-xs text-muted-foreground">
-                Kosongkan untuk furniture otomatis. Isi untuk menentukan item furniture spesifik (pisahkan dengan koma).
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Watermark Options */}
-      <div className="space-y-3 sm:space-y-4 p-3 sm:p-4 rounded-xl border border-border bg-muted/20">
-        <h3 className="font-medium text-xs sm:text-sm">Opsi Watermark (Opsional)</h3>
-        
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant={watermarkType === 'none' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setWatermarkType('none')}
-            disabled={isGenerating}
-            className="text-xs sm:text-sm flex-1 sm:flex-none min-w-[100px]"
-          >
-            <span className="hidden xs:inline">Tanpa </span>Watermark
-          </Button>
-          <Button
-            variant={watermarkType === 'text' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setWatermarkType('text')}
-            disabled={isGenerating}
-            className="text-xs sm:text-sm flex-1 sm:flex-none"
-          >
-            <Type className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-            Text
-          </Button>
-          <Button
-            variant={watermarkType === 'logo' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setWatermarkType('logo')}
-            disabled={isGenerating}
-            className="text-xs sm:text-sm flex-1 sm:flex-none"
-          >
-            <ImageIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-            Logo
-          </Button>
-        </div>
-
-        {watermarkType === 'text' && (
-          <div className="space-y-2">
-            <Label htmlFor="watermark-text">Text Watermark</Label>
-            <Input
-              id="watermark-text"
-              placeholder="Masukkan text watermark..."
-              value={watermarkText}
-              onChange={(e) => setWatermarkText(e.target.value)}
-              disabled={isGenerating}
-            />
           </div>
-        )}
 
-        {watermarkType === 'logo' && (
-          <div className="space-y-2">
-            <Label>Logo Watermark</Label>
-            <div
-              {...getRootProps()}
-              className={`
-                border-2 border-dashed rounded-xl p-4 text-center cursor-pointer
-                transition-colors duration-200
-                ${isDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}
-                ${isGenerating ? 'opacity-50 cursor-not-allowed' : ''}
-              `}
-            >
-              <input {...getInputProps()} />
-              {watermarkLogoPreview ? (
-                <div className="flex items-center justify-center gap-3">
-                  <img src={watermarkLogoPreview} alt="Logo" className="w-12 h-12 object-contain" />
-                  <span className="text-sm text-muted-foreground">Klik untuk ganti logo</span>
+          {/* Custom Input Options */}
+          {(classification === 'person' || classification === 'interior') && (
+            <div className="space-y-3 sm:space-y-4 p-3 sm:p-4 rounded-xl border border-border bg-muted/20">
+              <h3 className="font-medium text-xs sm:text-sm">
+                {classification === 'person' ? 'Custom Pose (Opsional)' : 'Custom Furniture Items (Opsional)'}
+              </h3>
+              
+              {classification === 'person' && (
+                <div className="space-y-2">
+                  <Label htmlFor="custom-pose">Deskripsi Pose yang Diinginkan</Label>
+                  <Input
+                    id="custom-pose"
+                    placeholder="Contoh: standing with arms crossed, smiling confidently"
+                    value={customPose}
+                    onChange={(e) => setCustomPose(e.target.value)}
+                    disabled={isGenerating}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Kosongkan untuk pose random. Isi untuk pose spesifik yang Anda inginkan.
+                  </p>
                 </div>
-              ) : (
-                <div className="flex flex-col items-center gap-2">
-                  <Upload className="w-6 h-6 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    {isDragActive ? 'Drop logo di sini' : 'Drag & drop logo atau klik untuk upload'}
-                  </span>
+              )}
+              
+              {classification === 'interior' && (
+                <div className="space-y-2">
+                  <Label htmlFor="custom-furniture">Item Furniture yang Diinginkan</Label>
+                  <Input
+                    id="custom-furniture"
+                    placeholder="Contoh: sofa, meja TV, rak buku, lemari, karpet"
+                    value={customFurniture}
+                    onChange={(e) => setCustomFurniture(e.target.value)}
+                    disabled={isGenerating}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Kosongkan untuk furniture otomatis. Isi untuk menentukan item furniture spesifik (pisahkan dengan koma).
+                  </p>
                 </div>
               )}
             </div>
+          )}
+
+          {/* Watermark Options */}
+          <div className="space-y-3 sm:space-y-4 p-3 sm:p-4 rounded-xl border border-border bg-muted/20">
+            <h3 className="font-medium text-xs sm:text-sm">Opsi Watermark (Opsional)</h3>
+            
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={watermarkType === 'none' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setWatermarkType('none')}
+                disabled={isGenerating}
+                className="text-xs sm:text-sm flex-1 sm:flex-none min-w-[100px]"
+              >
+                <span className="hidden xs:inline">Tanpa </span>Watermark
+              </Button>
+              <Button
+                variant={watermarkType === 'text' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setWatermarkType('text')}
+                disabled={isGenerating}
+                className="text-xs sm:text-sm flex-1 sm:flex-none"
+              >
+                <Type className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                Text
+              </Button>
+              <Button
+                variant={watermarkType === 'logo' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setWatermarkType('logo')}
+                disabled={isGenerating}
+                className="text-xs sm:text-sm flex-1 sm:flex-none"
+              >
+                <ImageIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                Logo
+              </Button>
+            </div>
+
+            {watermarkType === 'text' && (
+              <div className="space-y-2">
+                <Label htmlFor="watermark-text">Text Watermark</Label>
+                <Input
+                  id="watermark-text"
+                  placeholder="Masukkan text watermark..."
+                  value={watermarkText}
+                  onChange={(e) => setWatermarkText(e.target.value)}
+                  disabled={isGenerating}
+                />
+              </div>
+            )}
+
+            {watermarkType === 'logo' && (
+              <div className="space-y-2">
+                <Label>Logo Watermark</Label>
+                <div
+                  {...getRootProps()}
+                  className={`
+                    border-2 border-dashed rounded-xl p-4 text-center cursor-pointer
+                    transition-colors duration-200
+                    ${isDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}
+                    ${isGenerating ? 'opacity-50 cursor-not-allowed' : ''}
+                  `}
+                >
+                  <input {...getInputProps()} />
+                  {watermarkLogoPreview ? (
+                    <div className="flex items-center justify-center gap-3">
+                      <img src={watermarkLogoPreview} alt="Logo" className="w-12 h-12 object-contain" />
+                      <span className="text-sm text-muted-foreground">Klik untuk ganti logo</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <Upload className="w-6 h-6 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">
+                        {isDragActive ? 'Drop logo di sini' : 'Drag & drop logo atau klik untuk upload'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Generate Button - Centered */}
+          <div className="flex flex-col items-center gap-3 pt-3 sm:pt-4 border-t border-border">
+            <Button
+              variant="hero"
+              size="default"
+              onClick={handleGenerate}
+              disabled={selectedEnhancements.length === 0 || isGenerating}
+              className="w-full sm:w-auto text-sm sm:text-base"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  <span className="hidden xs:inline">Generating...</span>
+                  <span className="xs:hidden">Loading...</span>
+                </>
+              ) : (
+                <>
+                  <Wand2 className="w-4 h-4 mr-2" />
+                  Generate <span className="hidden xs:inline">Gambar </span>
+                  ({selectedEnhancements.length} enhancement{selectedEnhancements.length > 1 ? 's' : ''})
+                </>
+              )}
+            </Button>
+
+            {profile && (
+              <p className="text-xs text-muted-foreground text-center px-2">
+                Sisa generate: {profile.monthly_generate_limit - profile.current_month_generates} dari {profile.monthly_generate_limit}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column: Enhancement Options OR Generated Result */}
+        {!generatedResult ? (
+          /* Show Enhancement Options before generate */
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <h3 className="font-medium text-xs sm:text-sm text-muted-foreground">
+                Pilih Enhancement {selectedEnhancements.length > 0 && `(${selectedEnhancements.length} dipilih)`}
+              </h3>
+              {tokensNeeded > 0 && (
+                <Badge variant="outline" className="text-xs w-fit">
+                  {tokensNeeded} token akan digunakan
+                </Badge>
+              )}
+            </div>
+            <div className="grid gap-2 max-h-[600px] overflow-y-auto">
+              {options.map((option) => {
+                const isSelected = selectedEnhancements.includes(option);
+                return (
+                  <button
+                    key={option}
+                    onClick={() => handleToggleEnhancement(option)}
+                    disabled={isGenerating}
+                    className={`
+                      p-3 sm:p-4 rounded-xl border-2 text-left transition-all duration-200
+                      ${isSelected
+                        ? 'border-primary bg-primary/5 shadow-sm' 
+                        : 'border-border hover:border-primary/50'
+                      }
+                      ${isGenerating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                    `}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-sm sm:text-base break-words">{option}</span>
+                      {isSelected && (
+                        <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                          <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary-foreground" />
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          /* Show Generated Result after generate */
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium text-xs sm:text-sm text-muted-foreground">Hasil Generate</h3>
+              <Badge variant="secondary" className="text-xs">
+                {selectedEnhancements.length} enhancement
+              </Badge>
+            </div>
+            <div className="rounded-xl overflow-hidden border-2 border-primary bg-primary/5">
+              <div className="p-2 bg-background/80 border-b border-border">
+                <Badge variant="outline" className="text-xs truncate max-w-full block">
+                  {generatedResult.enhancement}
+                </Badge>
+              </div>
+              <div className="p-4 bg-muted/30">
+                <img 
+                  src={generatedResult.url} 
+                  alt="Generated" 
+                  className="w-full h-auto rounded-lg"
+                />
+              </div>
+              <div className="p-3 bg-background/80 border-t border-border flex gap-2">
+                <Button
+                  onClick={() => handleDownload(generatedResult.url, generatedResult.enhancement)}
+                  variant="hero"
+                  size="sm"
+                  className="flex-1"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download
+                </Button>
+                <Button
+                  onClick={() => setGeneratedResult(null)}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                >
+                  <Wand2 className="w-4 h-4 mr-2" />
+                  Generate Ulang
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </div>
-
-      <div className="flex justify-end pt-3 sm:pt-4 border-t border-border">
-        <Button
-          variant="hero"
-          size="default"
-          onClick={handleGenerate}
-          disabled={selectedEnhancements.length === 0 || isGenerating}
-          className="w-full sm:w-auto text-sm sm:text-base"
-        >
-          {isGenerating ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              <span className="hidden xs:inline">Generating </span>{generationProgress.current}/{generationProgress.total}...
-            </>
-          ) : (
-            <>
-              <Wand2 className="w-4 h-4 mr-2" />
-              Generate {tokensNeeded > 0 ? `${tokensNeeded} ` : ''}<span className="hidden xs:inline">Gambar</span>
-            </>
-          )}
-        </Button>
-      </div>
-
-      {profile && (
-        <p className="text-xs text-muted-foreground text-center px-2">
-          Sisa generate: {profile.monthly_generate_limit - profile.current_month_generates} dari {profile.monthly_generate_limit}
-        </p>
-      )}
     </div>
   );
 }

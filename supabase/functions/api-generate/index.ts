@@ -429,5 +429,136 @@ function buildEnhancementPrompt(enhancement: string, customPose?: string, custom
     return `turn this into a lifestyle product photo showing the product being used/worn in a natural, everyday setting. The model should look relaxed and natural. Soft natural lighting with a lifestyle background (e.g., cafe, outdoor, home setting). Professional lifestyle photography style.`;
   }
 
+  /* ============================
+     JEWELRY & ACCESSORIES
+     ============================ */
+  
+  // Jewelry worn on body parts
+  if (titleLower.includes('💍') && titleLower.includes('jari')) {
+    return `turn this into a professional product photo showing the ring being worn on a model's finger. The model should have elegant hands in a natural pose. Focus on the ring while showing it in use. Soft studio lighting with minimalist background. Professional jewelry photography style.`;
+  }
+  
+  if (titleLower.includes('📿') && titleLower.includes('leher')) {
+    return `turn this into a professional product photo showing the necklace being worn on a model's neck. The model should be in an elegant pose that showcases the necklace naturally. Focus on the necklace while showing it in use. Soft studio lighting with minimalist background. Professional jewelry photography style.`;
+  }
+  
+  if (titleLower.includes('⌚') && titleLower.includes('pergelangan')) {
+    return `turn this into a professional product photo showing the watch/bracelet being worn on a model's wrist. The model should have elegant hands in a natural pose. Focus on the watch/bracelet while showing it in use. Soft studio lighting with minimalist background. Professional jewelry photography style.`;
+  }
+  
+  if (titleLower.includes('👂') && titleLower.includes('telinga')) {
+    return `turn this into a professional product photo showing the earrings being worn on a model's ears. The model should be in an elegant pose that showcases the earrings naturally. Focus on the earrings while showing it in use. Soft studio lighting with minimalist background. Professional jewelry photography style.`;
+  }
+  
+  // Luxury Jewelry Styling
+  if (titleLower.includes('💎') && titleLower.includes('luxury')) {
+    return `Transform this into a luxury jewelry product photo. High-end styling, dramatic lighting, elegant presentation. Use premium background and professional jewelry photography techniques. Luxury brand aesthetic.`;
+  }
+
+  /* ============================
+     BEAUTY & COSMETICS
+     ============================ */
+  
+  // Beauty product used by model
+  if (titleLower.includes('💄') && (titleLower.includes('makeup') || titleLower.includes('skincare'))) {
+    return `turn this into a professional beauty product photo showing the product being used by a model. The model should look natural and beautiful. Focus on the product while showing it in use. Soft beauty lighting with clean background. Professional beauty photography style.`;
+  }
+  
+  // Luxury Product Styling
+  if (titleLower.includes('💎') && titleLower.includes('luxury') && titleLower.includes('product')) {
+    return `Transform this into a luxury beauty product photo. Premium packaging presentation, elegant styling, sophisticated lighting. High-end beauty brand aesthetic. Professional luxury product photography.`;
+  }
+  
+  // Natural/Organic Aesthetic
+  if (titleLower.includes('🌸') && (titleLower.includes('natural') || titleLower.includes('organic'))) {
+    return `Transform this into a natural/organic beauty product photo. Use natural elements (leaves, flowers, wood), soft natural lighting, earthy tones. Eco-friendly, organic brand aesthetic. Professional natural product photography.`;
+  }
+
+  /* ============================
+     ELECTRONICS & GADGETS
+     ============================ */
+  
+  // Electronics used by model
+  if (titleLower.includes('📱') && titleLower.includes('digunakan')) {
+    return `turn this into a professional tech product photo showing the device being used by a model. The model should look natural and engaged with the device. Modern lifestyle setting. Professional tech product photography style.`;
+  }
+  
+  // Tech Product Styling
+  if (titleLower.includes('💻') && titleLower.includes('tech')) {
+    return `Transform this into a professional tech product photo. Modern, sleek styling, clean background, perfect lighting. Showcase the device's design and build quality. Professional technology photography.`;
+  }
+  
+  // Modern/Futuristic Look
+  if (titleLower.includes('⚡') && (titleLower.includes('modern') || titleLower.includes('futuristic'))) {
+    return `Transform this into a modern/futuristic tech product photo. Use dramatic lighting, sleek styling, contemporary aesthetic. High-tech, cutting-edge product photography.`;
+  }
+
+  /* ============================
+     HOME & LIVING
+     ============================ */
+  
+  // Home setting display
+  if (titleLower.includes('🏠') && titleLower.includes('setting rumah')) {
+    return `Display this home product in a beautiful home setting. Show it in use in a cozy, well-decorated room. Natural lighting, lifestyle photography style. Professional home decor photography.`;
+  }
+  
+  // Cozy Home Aesthetic
+  if (titleLower.includes('🛋️') && titleLower.includes('cozy')) {
+    return `Transform this into a cozy home product photo. Warm lighting, comfortable setting, inviting atmosphere. Create a feeling of comfort and home. Professional lifestyle home photography.`;
+  }
+  
+  // Natural/Minimalist Style
+  if (titleLower.includes('🌿') && (titleLower.includes('natural') || titleLower.includes('minimalist'))) {
+    return `Transform this into a natural/minimalist home product photo. Clean lines, neutral colors, natural materials, simple styling. Scandinavian-inspired aesthetic. Professional minimalist product photography.`;
+  }
+
+  /* ============================
+     SPORTS & FITNESS
+     ============================ */
+  
+  // Sports equipment in use
+  if (titleLower.includes('🏃') && titleLower.includes('olahraga')) {
+    return `turn this into a professional sports product photo showing the equipment being used during exercise. The model should be athletic and in action. Dynamic, energetic photography. Professional sports product photography style.`;
+  }
+  
+  // Athlete/Model using product
+  if (titleLower.includes('💪') && titleLower.includes('atlet')) {
+    return `turn this into a professional fitness product photo with an athletic model using the product. Show strength, fitness, and performance. Gym or outdoor athletic setting. Professional fitness photography style.`;
+  }
+  
+  // Dynamic Action Shot
+  if (titleLower.includes('⚡') && titleLower.includes('dynamic')) {
+    return `Create a dynamic action shot of this sports product in use. Capture movement, energy, and performance. Professional sports action photography with motion and intensity.`;
+  }
+  
+  // Gym/Fitness Setting
+  if (titleLower.includes('🏋️') && (titleLower.includes('gym') || titleLower.includes('fitness'))) {
+    return `Display this fitness product in a professional gym setting. Modern fitness equipment, clean environment, motivational atmosphere. Professional gym product photography.`;
+  }
+
+  /* ============================
+     KIDS & BABY PRODUCTS
+     ============================ */
+  
+  // Kids/Baby using product
+  if (titleLower.includes('👶') && (titleLower.includes('anak') || titleLower.includes('baby'))) {
+    return `turn this into a professional kids product photo showing a child/baby using or enjoying the product. The child should look happy and natural. Bright, cheerful setting. Professional children's product photography style.`;
+  }
+  
+  // Photo with Parents
+  if (titleLower.includes('👨‍👩‍👧') && titleLower.includes('orang tua')) {
+    return `Create a professional family product photo showing parents with their child using the product. Warm, loving atmosphere, natural interactions. Professional family lifestyle photography.`;
+  }
+  
+  // Fun & Playful Aesthetic
+  if (titleLower.includes('🎈') && (titleLower.includes('fun') || titleLower.includes('playful'))) {
+    return `Transform this into a fun, playful kids product photo. Bright colors, cheerful atmosphere, engaging presentation. Create excitement and joy. Professional children's product photography.`;
+  }
+  
+  // Colorful & Cheerful Look
+  if (titleLower.includes('🌈') && (titleLower.includes('colorful') || titleLower.includes('cheerful'))) {
+    return `Transform this into a colorful, cheerful kids product photo. Vibrant colors, happy atmosphere, playful styling. Create a joyful, child-friendly aesthetic. Professional children's product photography.`;
+  }
+
   return `${enhancement}. Apply this enhancement professionally for e-commerce product photography.`;
 }
