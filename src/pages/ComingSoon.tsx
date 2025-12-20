@@ -22,43 +22,22 @@ const upcomingFeatures = [
     title: 'AI Video Generator',
     description: 'Generate video dari gambar atau text prompt dengan AI',
     status: 'In Development',
-    eta: 'Q1 2024'
+    eta: 'Comming Soon'
   },
   {
     icon: Music,
     title: 'AI Music & Audio',
     description: 'Generate musik background dan sound effects untuk konten Anda',
     status: 'Planned',
-    eta: 'Q2 2024'
+    eta: 'Comming Soon'
   },
   {
     icon: FileText,
     title: 'AI Content Writer',
     description: 'Generate deskripsi produk, caption, dan konten marketing dengan AI',
     status: 'In Development',
-    eta: 'Q1 2024'
+    eta: 'Comming Soon'
   },
-  {
-    icon: MessageSquare,
-    title: 'AI Chatbot Builder',
-    description: 'Buat chatbot AI untuk customer service dan sales automation',
-    status: 'Planned',
-    eta: 'Q2 2024'
-  },
-  {
-    icon: Brain,
-    title: 'AI Analytics',
-    description: 'Analisis performa konten dan rekomendasi optimasi dengan AI',
-    status: 'Research',
-    eta: 'Q3 2024'
-  },
-  {
-    icon: Wand2,
-    title: 'Custom AI Models',
-    description: 'Train AI model khusus untuk brand dan style Anda sendiri',
-    status: 'Research',
-    eta: 'Q3 2024'
-  }
 ];
 
 const getStatusColor = (status: string) => {
@@ -118,7 +97,7 @@ export default function ComingSoon() {
         </Card>
 
         {/* Upcoming Features Grid */}
-        <div className="mb-12">
+        {/* <div className="mb-12">
           <h2 className="text-2xl font-bold mb-6">Roadmap Fitur AI</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {upcomingFeatures.map((feature, index) => (
@@ -144,10 +123,10 @@ export default function ComingSoon() {
               </Card>
             ))}
           </div>
-        </div>
+        </div> */}
 
         {/* Newsletter/Notification CTA */}
-        <Card className="border-2 border-dashed">
+        {/* <Card className="border-2 border-dashed">
           <CardContent className="p-8 text-center">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
               <Sparkles className="w-8 h-8 text-primary" />
@@ -166,7 +145,7 @@ export default function ComingSoon() {
               </Button>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
     </Layout>
   );
