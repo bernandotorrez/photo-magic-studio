@@ -17,11 +17,19 @@ interface Profile {
 
 interface ImageUploaderProps {
   onImageUploaded: (url: string, path: string, classification: string, options: any[]) => void; // Support both object[] and string[]
+  onMultipleImagesUploaded?: (images: Array<{url: string, path: string}>) => void; // For multiple images
   profile: Profile | null;
   classifyFunction?: string; // Edge function name for classification
+  selectedEnhancement?: string | null; // To check if multiple images needed
 }
 
-export function ImageUploader({ onImageUploaded, profile, classifyFunction = 'classify-image' }: ImageUploaderProps) {
+export function ImageUploader({ 
+  onImageUploaded, 
+  onMultipleImagesUploaded,
+  profile, 
+  classifyFunction = 'classify-image',
+  selectedEnhancement 
+}: ImageUploaderProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState('');
