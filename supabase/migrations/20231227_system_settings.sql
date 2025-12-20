@@ -217,6 +217,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_update_system_settings_updated_at ON system_settings;
 CREATE TRIGGER trigger_update_system_settings_updated_at
   BEFORE UPDATE ON system_settings
   FOR EACH ROW
@@ -307,6 +308,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_update_subscription_tiers_updated_at ON subscription_tiers;
 CREATE TRIGGER trigger_update_subscription_tiers_updated_at
   BEFORE UPDATE ON subscription_tiers
   FOR EACH ROW
@@ -344,7 +346,85 @@ CREATE POLICY "Only admins can manage subscription tiers"
   );
 
 -- =====================================================
--- 8. VERIFICATION QUERIES
+-- 9. HELPER FUNCTIONS FOR PAYMENT PROCESSING
+-- =====================================================
+
+-- Update process_approved_payment to also update subscription_plan
+CREATE OR REPLACE FUNCTION process_approved_payment_with_tier(payment_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_user_id UUID;
+  v_user_email TEXT;
+  v_tokens_purchased INTEGER;
+  v_bonus_tokens INTEGER;
+  v_total_tokens INTEGER;
+  v_token_type TEXT;
+  v_subscription_plan TEXT;
+BEGIN
+  -- Get payment details
+  SELECT 
+    user_id,
+    user_email,
+    tokens_purchased,
+    COALESCE(bonus_tokens, 0),
+    COALESCE(token_type, 'purchased'),
+    subscription_plan
+  INTO 
+    v_user_id,
+    v_user_email,
+    v_tokens_purchased,
+    v_bonus_tokens,
+    v_token_type,
+    v_subscription_plan
+  FROM payments
+  WHERE id = payment_id;
+  
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Payment not found';
+  END IF;
+  
+  -- Calculate total tokens (purchased + bonus)
+  v_total_tokens := v_tokens_purchased + v_bonus_tokens;
+  
+  -- Add tokens based on token_type
+  IF v_token_type = 'subscription' THEN
+    -- Add to subscription_tokens with 30 days expiry
+    PERFORM add_subscription_tokens(v_user_id, v_total_tokens, 30);
+    
+    -- Update subscription_plan if provided
+    IF v_subscription_plan IS NOT NULL THEN
+      UPDATE profiles
+      SET subscription_plan = v_subscription_plan
+      WHERE user_id = v_user_id;
+    END IF;
+    
+    RAISE NOTICE 'Added % subscription tokens (% purchased + % bonus) to user % with plan %', 
+      v_total_tokens, v_tokens_purchased, v_bonus_tokens, v_user_email, v_subscription_plan;
+  ELSE
+    -- Add to purchased_tokens (never expire)
+    PERFORM add_purchased_tokens(v_user_id, v_total_tokens);
+    
+    RAISE NOTICE 'Added % purchased tokens (% purchased + % bonus) to user %', 
+      v_total_tokens, v_tokens_purchased, v_bonus_tokens, v_user_email;
+  END IF;
+  
+  RETURN TRUE;
+  
+EXCEPTION
+  WHEN OTHERS THEN
+    RAISE EXCEPTION 'Error processing payment: %', SQLERRM;
+    RETURN FALSE;
+END;
+$$;
+
+-- Grant execute permission
+GRANT EXECUTE ON FUNCTION process_approved_payment_with_tier TO authenticated, service_role;
+
+-- =====================================================
+-- 10. VERIFICATION QUERIES
 -- =====================================================
 
 -- Check subscription tiers
@@ -363,10 +443,11 @@ SELECT * FROM get_subscription_tier('basic_plus');
 SELECT get_system_setting('default_user_tier');
 
 -- =====================================================
--- 9. ROLLBACK (if needed)
+-- 11. ROLLBACK (if needed)
 -- =====================================================
 -- Uncomment to rollback:
 
+-- DROP FUNCTION IF EXISTS process_approved_payment_with_tier;
 -- DROP TRIGGER IF EXISTS trigger_apply_default_user_settings ON profiles;
 -- DROP FUNCTION IF EXISTS apply_default_user_settings;
 -- DROP POLICY IF EXISTS "Only admins can manage subscription tiers" ON subscription_tiers;
