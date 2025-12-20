@@ -105,7 +105,11 @@ export function Layout({ children }: LayoutProps) {
       {/* Mobile Sidebar - Sheet */}
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
         <SheetContent side="left" className="p-0 w-64">
-          <Sidebar isAdmin={profile?.is_admin} onSignOut={handleSignOut} />
+          <Sidebar 
+            isAdmin={profile?.is_admin} 
+            onSignOut={handleSignOut}
+            onNavigate={() => setMobileMenuOpen(false)}
+          />
         </SheetContent>
       </Sheet>
 

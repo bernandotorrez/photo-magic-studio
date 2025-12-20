@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils';
 interface SidebarProps {
   isAdmin?: boolean;
   onSignOut?: () => void;
+  onNavigate?: () => void; // Callback untuk close mobile menu
 }
 
 interface MenuItem {
@@ -42,7 +43,7 @@ interface MenuItem {
   info?: string;
 }
 
-export function Sidebar({ isAdmin = false, onSignOut }: SidebarProps) {
+export function Sidebar({ isAdmin = false, onSignOut, onNavigate }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -114,6 +115,10 @@ export function Sidebar({ isAdmin = false, onSignOut }: SidebarProps) {
 
   const handleNavigation = (path: string) => {
     navigate(path);
+    // Close mobile menu after navigation
+    if (onNavigate) {
+      onNavigate();
+    }
   };
 
   return (
