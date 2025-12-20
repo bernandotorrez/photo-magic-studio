@@ -185,6 +185,26 @@ export type Database = {
     }
     Functions: {
       cleanup_old_login_attempts: { Args: never; Returns: undefined }
+      get_active_subscription_tiers: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          tier_id: string
+          tier_name: string
+          display_order: number
+          price: number
+          tokens: number
+          bonus_tokens: number
+          description: string
+          features: string[]
+          limitations: string[]
+          api_rate_limit: number
+          is_popular: boolean
+          color: string
+          bg_color: string
+          icon: string
+        }[]
+      }
       get_user_statistics: {
         Args: Record<PropertyKey, never>
         Returns: {

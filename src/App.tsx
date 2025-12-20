@@ -21,7 +21,7 @@ import ApiKeys from "./pages/ApiKeys";
 import ApiDocumentationPage from "./pages/ApiDocumentation";
 import TopUp from "./pages/TopUp";
 import PaymentHistory from "./pages/PaymentHistory";
-import Pricing from "./pages/Pricing";
+import PricingNew from "./pages/PricingNew";
 import MyPayments from "./pages/MyPayments";
 import NotFound from "./pages/NotFound";
 
@@ -52,7 +52,7 @@ const App = () => (
             <Route path="/api-documentation" element={<ApiDocumentationPage />} />
             <Route path="/top-up" element={<TopUp />} />
             <Route path="/payment-history" element={<PaymentHistory />} />
-            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/pricing" element={<PricingNew />} />
             <Route path="/my-payments" element={<MyPayments />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
