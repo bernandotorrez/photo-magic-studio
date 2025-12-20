@@ -7,7 +7,9 @@ import {
   Sparkles, 
   Settings,
   Shield,
-  Home
+  Home,
+  Wand2,
+  Link2
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -28,6 +30,18 @@ const menuItems = [
     label: 'Kelola User',
     icon: Users,
     description: 'Manage users & subscriptions',
+  },
+  {
+    id: 'enhancements',
+    label: 'Enhancement Prompts',
+    icon: Wand2,
+    description: 'Manage AI prompts',
+  },
+  {
+    id: 'mappings',
+    label: 'Category Mapping',
+    icon: Link2,
+    description: 'Map categories to enhancements',
   },
   {
     id: 'generations',
