@@ -124,12 +124,24 @@ serve(async (req) => {
       if (typeof enh === 'string' && enh.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
         // It's an ID - query from database
         console.log('Querying enhancement by ID:', enh);
-        const { data: promptData } = await supabase
+        const { data: promptData, error: queryError } = await supabase
           .from('enhancement_prompts')
           .select('enhancement_type, display_name, prompt_template')
           .eq('id', enh)
           .eq('is_active', true)
           .maybeSingle();
+        
+        if (queryError) {
+          console.error('❌ Error querying enhancement:', queryError);
+          return new Response(
+            JSON.stringify({ 
+              error: 'Failed to query enhancement data',
+              details: queryError.message,
+              enhancementId: enh
+            }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
         
         if (promptData) {
           enhancementData = promptData;
@@ -138,6 +150,14 @@ serve(async (req) => {
           console.log('✅ Found enhancement:', promptData.display_name);
         } else {
           console.log('⚠️ Enhancement ID not found:', enh);
+          return new Response(
+            JSON.stringify({ 
+              error: 'Enhancement not found',
+              details: `Enhancement ID ${enh} tidak ditemukan atau tidak aktif`,
+              enhancementId: enh
+            }),
+            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
         }
       } else {
         // Legacy format - string or object with title
@@ -186,6 +206,7 @@ serve(async (req) => {
     }
     
     // Prepend system prompt if available
+    let enhancementPrompt = '';
     if (systemPrompt) {
       enhancementPrompt = `${systemPrompt}\n\n${mainPrompt}`;
     } else {

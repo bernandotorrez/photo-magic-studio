@@ -15,6 +15,7 @@ interface EnhancementOption {
   display_name: string;
   description?: string;
   is_default?: boolean;
+  is_featured?: boolean;
 }
 
 interface Profile {
@@ -173,6 +174,7 @@ export function EnhancementOptions({
       });
 
       if (error) {
+        console.error('Edge function error:', error);
         if (error.message?.includes('Rate limit')) {
           toast({
             title: 'Rate Limit',
@@ -181,10 +183,37 @@ export function EnhancementOptions({
           });
           throw new Error('Rate limit exceeded');
         }
+        if (error.message?.includes('Token')) {
+          toast({
+            title: 'Token Habis',
+            description: 'Token Anda sudah habis. Silakan top up untuk melanjutkan.',
+            variant: 'destructive',
+          });
+          throw new Error('Insufficient tokens');
+        }
+        if (error.message?.includes('Enhancement not found')) {
+          toast({
+            title: 'Enhancement Tidak Ditemukan',
+            description: 'Enhancement yang dipilih tidak tersedia. Silakan refresh halaman.',
+            variant: 'destructive',
+          });
+          throw new Error('Enhancement not found');
+        }
+        toast({
+          title: 'Generate Gagal',
+          description: error.message || 'Terjadi kesalahan saat generate. Silakan coba lagi.',
+          variant: 'destructive',
+        });
         throw error;
       }
 
       if (data.error) {
+        console.error('API error:', data.error, data.details);
+        toast({
+          title: 'Generate Gagal',
+          description: data.error || 'Terjadi kesalahan saat generate.',
+          variant: 'destructive',
+        });
         throw new Error(data.error);
       }
 
@@ -442,6 +471,7 @@ export function EnhancementOptions({
                 const optionId = isNewFormat ? option.id : option;
                 const optionDisplay = isNewFormat ? option.display_name : option;
                 const optionDescription = isNewFormat ? option.description : undefined;
+                const isFeatured = isNewFormat ? option.is_featured : false;
                 
                 const isSelected = selectedEnhancements.includes(optionId);
                 return (
@@ -453,6 +483,8 @@ export function EnhancementOptions({
                       p-3 sm:p-4 rounded-xl border-2 text-left transition-all duration-200
                       ${isSelected
                         ? 'border-primary bg-primary/5 shadow-sm' 
+                        : isFeatured
+                        ? 'border-primary/30 bg-gradient-to-r from-primary/5 to-transparent hover:border-primary/50'
                         : 'border-border hover:border-primary/50'
                       }
                       ${isGenerating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
@@ -460,7 +492,15 @@ export function EnhancementOptions({
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex-1">
-                        <span className="font-medium text-sm sm:text-base break-words block">{optionDisplay}</span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium text-sm sm:text-base break-words">{optionDisplay}</span>
+                          {isFeatured && (
+                            <Badge variant="secondary" className="text-xs px-1.5 py-0 h-5">
+                              <Sparkles className="w-3 h-3 mr-1" />
+                              Unggulan
+                            </Badge>
+                          )}
+                        </div>
                         {optionDescription && (
                           <span className="text-xs text-muted-foreground mt-1 block">{optionDescription}</span>
                         )}

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { Layout } from '@/components/Layout';
-import { ImageUploader } from '@/components/dashboard/ImageUploader';
+import { SmartImageUploader } from '@/components/dashboard/SmartImageUploader';
 import { EnhancementOptions } from '@/components/dashboard/EnhancementOptions';
 import { GenerationResult } from '@/components/dashboard/GenerationResult';
 import { TokenAlert } from '@/components/TokenAlert';
@@ -28,6 +28,7 @@ export default function FoodEnhancement() {
   const [classification, setClassification] = useState<string | null>(null);
   const [enhancementOptions, setEnhancementOptions] = useState<any[]>([]); // Support both object[] and string[]
   const [selectedEnhancements, setSelectedEnhancements] = useState<string[]>([]);
+  const [multipleImages, setMultipleImages] = useState<Array<{url: string, path: string, preview: string}>>([]);
   const [generatedResults, setGeneratedResults] = useState<GeneratedResult[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -66,6 +67,17 @@ export default function FoodEnhancement() {
     setClassification(classif);
     setEnhancementOptions(options);
     setSelectedEnhancements([]);
+    setMultipleImages([]);
+    setGeneratedResults([]);
+  };
+
+  const handleMultipleImagesUploaded = (images: Array<{url: string, path: string, preview: string}>) => {
+    setMultipleImages(images);
+    setImageUrl(null);
+    setImagePath(null);
+    setClassification('food');
+    setEnhancementOptions([]);
+    setSelectedEnhancements([]);
     setGeneratedResults([]);
   };
 
@@ -75,6 +87,7 @@ export default function FoodEnhancement() {
     setClassification(null);
     setEnhancementOptions([]);
     setSelectedEnhancements([]);
+    setMultipleImages([]);
     setGeneratedResults([]);
   };
 
@@ -228,8 +241,10 @@ export default function FoodEnhancement() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ImageUploader
+              <SmartImageUploader
+                selectedEnhancement={selectedEnhancements[0] || null}
                 onImageUploaded={handleImageUploaded}
+                onMultipleImagesUploaded={handleMultipleImagesUploaded}
                 profile={profile}
                 classifyFunction="classify-food"
               />
