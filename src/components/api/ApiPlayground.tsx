@@ -51,16 +51,13 @@ export default function ApiPlayground() {
           display_name,
           description,
           is_active,
-          category_enhancements!inner (
-            sort_order,
-            image_categories!inner (
-              category_code,
-              category_name
-            )
-          )
+          category,
+          is_featured,
+          sort_order
         `)
         .eq('is_active', true)
-        .order('category_enhancements.sort_order');
+        .order('is_featured', { ascending: false })
+        .order('sort_order', { ascending: true });
 
       if (!error && data) {
         // Transform data to match Enhancement interface
@@ -69,9 +66,9 @@ export default function ApiPlayground() {
           enhancement_type: item.enhancement_type,
           display_name: item.display_name,
           description: item.description,
-          category: item.category_enhancements[0]?.image_categories?.category_code || '',
+          category: item.category || '',
           is_default: false,
-          sort_order: item.category_enhancements[0]?.sort_order || 0
+          sort_order: item.sort_order || 0
         }));
 
         setEnhancements(transformedData);
