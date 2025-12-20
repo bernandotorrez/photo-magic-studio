@@ -103,22 +103,38 @@ serve(async (req) => {
 
     // Build enhancement prompt from database
     let enhancementPrompt = '';
+    let enhancementDisplayName = enhancement;
     
-    // Try to get prompt from database first
-    const { data: promptData } = await supabase
+    // Query by display_name OR enhancement_type (flexible for users)
+    console.log('Querying enhancement:', enhancement);
+    
+    // Try display_name first (with emoji, user-friendly)
+    let { data: promptData } = await supabase
       .from('enhancement_prompts')
-      .select('prompt_template')
-      .eq('enhancement_type', enhancement)
+      .select('prompt_template, display_name, enhancement_type')
+      .eq('display_name', enhancement)
       .eq('is_active', true)
       .maybeSingle();
     
+    // If not found, try by enhancement_type (without emoji, code-friendly)
+    if (!promptData) {
+      console.log('Not found by display_name, trying enhancement_type...');
+      const result = await supabase
+        .from('enhancement_prompts')
+        .select('prompt_template, display_name, enhancement_type')
+        .eq('enhancement_type', enhancement)
+        .eq('is_active', true)
+        .maybeSingle();
+      promptData = result.data;
+    }
+    
     if (promptData?.prompt_template) {
-      // Use database prompt
       enhancementPrompt = promptData.prompt_template;
-      console.log('Using database prompt for:', enhancement);
+      enhancementDisplayName = promptData.display_name;
+      console.log('✅ Using database prompt for:', enhancement, '→', promptData.display_name);
     } else {
-      // Fallback: simple prompt
-      console.log('No database prompt found, using simple fallback for:', enhancement);
+      // Ultimate fallback: simple prompt
+      console.log('⚠️ No database prompt found, using simple fallback for:', enhancement);
       enhancementPrompt = `Apply ${enhancement} enhancement professionally for e-commerce product photography.`;
     }
 
@@ -134,8 +150,8 @@ serve(async (req) => {
       watermarkInstruction = ' Remove any existing watermarks, text overlays, logos, or branding from the image. Ensure the final image is clean without any text or logo elements.';
     }
 
-    // Determine if model is needed
-    const titleLower = enhancement.toLowerCase();
+    // Determine if model is needed based on enhancement name
+    const titleLower = enhancementDisplayName.toLowerCase();
     const needsModel = 
       titleLower.includes('model') || 
       titleLower.includes('dipakai') || 
@@ -330,16 +346,32 @@ serve(async (req) => {
             user_email: userEmail,
             original_image_path: 'api-upload',
             generated_image_path: fileName,
-            enhancement_type: enhancement,
+            enhancement_type: enhancementDisplayName,
             classification_result: classification || 'unknown',
             prompt_used: generatedPrompt
           });
 
         // Deduct tokens using dual token system (subscription tokens first)
-        await supabase.rpc('deduct_tokens_dual', {
+        const { data: deductResult, error: deductError } = await supabase.rpc('deduct_user_tokens', {
           p_user_id: userId,
           p_amount: 1
         });
+
+        if (deductError) {
+          console.error('❌ Error deducting tokens:', deductError);
+        } else if (deductResult && deductResult.length > 0) {
+          const result = deductResult[0];
+          if (result.success) {
+            console.log('✅ Token deducted successfully:', {
+              subscription_used: result.subscription_used,
+              purchased_used: result.purchased_used,
+              remaining_subscription: result.remaining_subscription,
+              remaining_purchased: result.remaining_purchased
+            });
+          } else {
+            console.error('❌ Failed to deduct tokens:', result.message);
+          }
+        }
       }
     } catch (saveError) {
       console.error('Error saving generated image:', saveError);

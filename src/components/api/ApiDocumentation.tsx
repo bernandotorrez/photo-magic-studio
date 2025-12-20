@@ -1,16 +1,61 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Copy, Check, ExternalLink, Code, BookOpen, Zap, Shield } from 'lucide-react';
+import { Copy, Check, ExternalLink, Code, BookOpen, Zap, Shield, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
+
+interface Enhancement {
+  enhancement_id: string;
+  enhancement_type: string;
+  display_name: string;
+  description: string;
+  category: string;
+  is_default: boolean;
+  sort_order: number;
+}
 
 export default function ApiDocumentation() {
   const { toast } = useToast();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [enhancements, setEnhancements] = useState<Record<string, Enhancement[]>>({});
+  const [loadingEnhancements, setLoadingEnhancements] = useState(true);
+
+  // Load enhancements from database
+  useEffect(() => {
+    loadEnhancements();
+  }, []);
+
+  const loadEnhancements = async () => {
+    try {
+      const categories = ['food', 'fashion', 'interior', 'exterior', 'portrait'];
+      const enhancementsByCategory: Record<string, Enhancement[]> = {};
+
+      for (const category of categories) {
+        const { data, error } = await supabase
+          .rpc('get_enhancements_by_category', { p_category_code: category });
+
+        if (!error && data) {
+          enhancementsByCategory[category] = data;
+        }
+      }
+
+      setEnhancements(enhancementsByCategory);
+    } catch (error) {
+      console.error('Error loading enhancements:', error);
+      toast({
+        title: 'Error',
+        description: 'Gagal memuat enhancement list',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingEnhancements(false);
+    }
+  };
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -101,9 +146,10 @@ export default function ApiDocumentation() {
 
       {/* Main Documentation */}
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="authentication">Auth</TabsTrigger>
+          <TabsTrigger value="enhancements">Enhancements</TabsTrigger>
           <TabsTrigger value="endpoint">Endpoint</TabsTrigger>
           <TabsTrigger value="examples">Examples</TabsTrigger>
           <TabsTrigger value="errors">Errors</TabsTrigger>
@@ -201,6 +247,126 @@ export default function ApiDocumentation() {
                   <li>• Rotate key secara berkala untuk keamanan</li>
                 </ul>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Enhancements Tab */}
+        <TabsContent value="enhancements" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Available Enhancements</CardTitle>
+              <CardDescription>
+                Daftar lengkap enhancement yang tersedia. Anda bisa menggunakan <strong>Display Name</strong> (dengan emoji) atau <strong>Enhancement Type</strong> (tanpa emoji).
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingEnhancements ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  <span className="ml-2 text-muted-foreground">Loading enhancements...</span>
+                </div>
+              ) : (
+                <Tabs defaultValue="food" className="w-full">
+                  <TabsList className="grid w-full grid-cols-5">
+                    <TabsTrigger value="food">Food</TabsTrigger>
+                    <TabsTrigger value="fashion">Fashion</TabsTrigger>
+                    <TabsTrigger value="interior">Interior</TabsTrigger>
+                    <TabsTrigger value="exterior">Exterior</TabsTrigger>
+                    <TabsTrigger value="portrait">Portrait</TabsTrigger>
+                  </TabsList>
+
+                  {Object.entries(enhancements).map(([category, items]) => (
+                    <TabsContent key={category} value={category} className="space-y-4">
+                      <div className="bg-blue-500/10 border border-blue-500/50 rounded-lg p-4 mb-4">
+                        <p className="text-sm font-semibold text-blue-500 mb-2">💡 Tip:</p>
+                        <p className="text-sm text-muted-foreground">
+                          Klik pada <strong>Display Name</strong> atau <strong>Enhancement Type</strong> untuk copy ke clipboard.
+                        </p>
+                      </div>
+
+                      <div className="border rounded-lg overflow-hidden">
+                        <table className="w-full text-sm">
+                          <thead className="bg-muted">
+                            <tr>
+                              <th className="text-left p-3">Display Name</th>
+                              <th className="text-left p-3">Enhancement Type</th>
+                              <th className="text-left p-3">Description</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {items.map((item, index) => (
+                              <tr key={item.enhancement_id} className={index % 2 === 0 ? 'bg-background' : 'bg-muted/30'}>
+                                <td className="p-3">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-auto p-2 font-normal justify-start hover:bg-primary/10"
+                                    onClick={() => copyToClipboard(item.display_name, `Display Name: ${item.display_name}`)}
+                                  >
+                                    <span className="text-left">{item.display_name}</span>
+                                    {copiedCode === `Display Name: ${item.display_name}` ? (
+                                      <Check className="w-3 h-3 ml-2 text-green-500 flex-shrink-0" />
+                                    ) : (
+                                      <Copy className="w-3 h-3 ml-2 opacity-0 group-hover:opacity-100 flex-shrink-0" />
+                                    )}
+                                  </Button>
+                                </td>
+                                <td className="p-3">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-auto p-2 font-mono text-xs justify-start hover:bg-primary/10"
+                                    onClick={() => copyToClipboard(item.enhancement_type, `Enhancement Type: ${item.enhancement_type}`)}
+                                  >
+                                    <code className="text-left">{item.enhancement_type}</code>
+                                    {copiedCode === `Enhancement Type: ${item.enhancement_type}` ? (
+                                      <Check className="w-3 h-3 ml-2 text-green-500 flex-shrink-0" />
+                                    ) : (
+                                      <Copy className="w-3 h-3 ml-2 opacity-0 group-hover:opacity-100 flex-shrink-0" />
+                                    )}
+                                  </Button>
+                                </td>
+                                <td className="p-3 text-muted-foreground">{item.description || '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div className="bg-muted/50 rounded-lg p-4">
+                        <h4 className="font-semibold mb-2">Example Usage:</h4>
+                        <div className="space-y-2">
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">Using Display Name (with emoji):</p>
+                            <CodeBlock
+                              language="json"
+                              label={`${category} display name example`}
+                              code={`{
+  "imageUrl": "https://example.com/image.jpg",
+  "enhancement": "${items[0]?.display_name || 'enhancement name'}",
+  "classification": "${category}"
+}`}
+                            />
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">Using Enhancement Type (without emoji):</p>
+                            <CodeBlock
+                              language="json"
+                              label={`${category} enhancement type example`}
+                              code={`{
+  "imageUrl": "https://example.com/image.jpg",
+  "enhancement": "${items[0]?.enhancement_type || 'enhancement_type'}",
+  "classification": "${category}"
+}`}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </TabsContent>
+                  ))}
+                </Tabs>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -319,24 +485,24 @@ export default function ApiDocumentation() {
 
               <div>
                 <h4 className="font-semibold mb-2">Enhancement Types:</h4>
-                <div className="grid md:grid-cols-2 gap-2">
-                  {[
-                    { value: 'add_female_model', label: 'Model Wanita' },
-                    { value: 'add_male_model', label: 'Model Pria' },
-                    { value: 'add_female_hijab_model', label: 'Model Hijab' },
-                    { value: 'add_mannequin', label: 'Mannequin' },
-                    { value: 'remove_background', label: 'Remove Background' },
-                    { value: 'improve_lighting', label: 'Improve Lighting' },
-                    { value: 'enhance_background', label: 'Enhance Background' },
-                    { value: 'lifestyle', label: 'Lifestyle Photo' },
-                    { value: 'ubah pose', label: '✨ Custom Pose (NEW)', badge: true },
-                    { value: 'virtual staging', label: '✨ Custom Furniture (NEW)', badge: true },
-                  ].map((item) => (
-                    <div key={item.value} className="flex items-center gap-2 p-2 border rounded">
-                      <code className="text-xs bg-muted px-2 py-1 rounded">{item.value}</code>
-                      <span className="text-sm text-muted-foreground">{item.label}</span>
+                <div className="bg-blue-500/10 border border-blue-500/50 rounded-lg p-4">
+                  <p className="text-sm font-semibold text-blue-500 mb-2">📋 Daftar Lengkap Enhancement</p>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Lihat daftar lengkap enhancement yang tersedia dengan deskripsi dan contoh penggunaan di tab <strong>Enhancements</strong>.
+                  </p>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Anda bisa menggunakan <strong>Display Name</strong> (dengan emoji) atau <strong>Enhancement Type</strong> (tanpa emoji). Keduanya valid!
+                  </p>
+                  <div className="grid md:grid-cols-2 gap-2 text-xs">
+                    <div className="bg-background p-2 rounded border">
+                      <p className="font-semibold mb-1">✅ Display Name:</p>
+                      <code className="text-xs">"📐 Top-Down View (Flat Lay)"</code>
                     </div>
-                  ))}
+                    <div className="bg-background p-2 rounded border">
+                      <p className="font-semibold mb-1">✅ Enhancement Type:</p>
+                      <code className="text-xs">"food_angle_top_down"</code>
+                    </div>
+                  </div>
                 </div>
               </div>
 

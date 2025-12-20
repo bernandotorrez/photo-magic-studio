@@ -9,6 +9,14 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Wand2, Loader2, Check, Sparkles, Image as ImageIcon, Type, Upload, Download } from 'lucide-react';
 
+interface EnhancementOption {
+  id: string;
+  enhancement_type: string;
+  display_name: string;
+  description?: string;
+  is_default?: boolean;
+}
+
 interface Profile {
   subscription_tokens: number;
   purchased_tokens: number;
@@ -24,7 +32,7 @@ interface EnhancementOptionsProps {
   imageUrl: string;
   imagePath: string;
   classification: string;
-  options: string[];
+  options: EnhancementOption[] | string[]; // Support both new and legacy format
   selectedEnhancements: string[];
   onSelect: (enhancements: string[]) => void;
   onGenerate: (results: GeneratedResult[]) => void;
@@ -84,11 +92,11 @@ export function EnhancementOptions({
     disabled: isGenerating,
   });
 
-  const handleToggleEnhancement = (enhancement: string) => {
-    if (selectedEnhancements.includes(enhancement)) {
-      onSelect(selectedEnhancements.filter(e => e !== enhancement));
+  const handleToggleEnhancement = (enhancementId: string) => {
+    if (selectedEnhancements.includes(enhancementId)) {
+      onSelect(selectedEnhancements.filter(e => e !== enhancementId));
     } else {
-      onSelect([...selectedEnhancements, enhancement]);
+      onSelect([...selectedEnhancements, enhancementId]);
     }
   };
 
@@ -130,13 +138,30 @@ export function EnhancementOptions({
       }
 
       // Combine all selected enhancements into one prompt
-      const combinedEnhancement = selectedEnhancements.join(', ');
+      // Check if options are objects with IDs (new format) or strings (legacy)
+      const isNewFormat = options.length > 0 && typeof options[0] === 'object' && 'id' in options[0];
+      
+      let enhancementIds: string[] = [];
+      let combinedEnhancement = '';
+      
+      if (isNewFormat) {
+        // New format: send enhancement IDs
+        enhancementIds = selectedEnhancements;
+        // Get display names for the combined enhancement string
+        const selectedOptions = (options as EnhancementOption[]).filter(opt => 
+          selectedEnhancements.includes(opt.id)
+        );
+        combinedEnhancement = selectedOptions.map(opt => opt.display_name).join(', ');
+      } else {
+        // Legacy format: send enhancement strings
+        combinedEnhancement = selectedEnhancements.join(', ');
+      }
 
       const { data, error } = await supabase.functions.invoke('generate-enhanced-image', {
         body: {
           originalImagePath: imagePath,
           classification,
-          enhancement: combinedEnhancement,
+          ...(isNewFormat ? { enhancementIds } : { enhancement: combinedEnhancement }),
           customPose: customPose || undefined,
           customFurniture: customFurniture || undefined,
           watermark: watermarkType !== 'none' ? {
@@ -412,11 +437,17 @@ export function EnhancementOptions({
             </div>
             <div className="grid gap-2 max-h-[600px] overflow-y-auto">
               {options.map((option) => {
-                const isSelected = selectedEnhancements.includes(option);
+                // Support both new format (object with id) and legacy format (string)
+                const isNewFormat = typeof option === 'object' && 'id' in option;
+                const optionId = isNewFormat ? option.id : option;
+                const optionDisplay = isNewFormat ? option.display_name : option;
+                const optionDescription = isNewFormat ? option.description : undefined;
+                
+                const isSelected = selectedEnhancements.includes(optionId);
                 return (
                   <button
-                    key={option}
-                    onClick={() => handleToggleEnhancement(option)}
+                    key={optionId}
+                    onClick={() => handleToggleEnhancement(optionId)}
                     disabled={isGenerating}
                     className={`
                       p-3 sm:p-4 rounded-xl border-2 text-left transition-all duration-200
@@ -428,7 +459,12 @@ export function EnhancementOptions({
                     `}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-sm sm:text-base break-words">{option}</span>
+                      <div className="flex-1">
+                        <span className="font-medium text-sm sm:text-base break-words block">{optionDisplay}</span>
+                        {optionDescription && (
+                          <span className="text-xs text-muted-foreground mt-1 block">{optionDescription}</span>
+                        )}
+                      </div>
                       {isSelected && (
                         <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
                           <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary-foreground" />

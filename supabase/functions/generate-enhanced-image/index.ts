@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { imageUrl, originalImagePath, imagePath, enhancement, enhancements, classification, watermark, customPose, customFurniture, debugMode } = await req.json();
+    const { imageUrl, originalImagePath, imagePath, enhancement, enhancements, enhancementIds, classification, watermark, customPose, customFurniture, debugMode } = await req.json();
     
     // Get user ID and email from authorization header
     const authHeader = req.headers.get('authorization');
@@ -33,12 +33,17 @@ serve(async (req) => {
     // Accept either imageUrl or originalImagePath
     const storagePath = originalImagePath || imagePath;
     
-    // Support both single enhancement and multiple enhancements
-    const enhancementList = enhancements || (enhancement ? [enhancement] : []);
+    // Support both enhancement IDs (new way) and legacy enhancement objects/strings
+    let enhancementList = enhancements || (enhancement ? [enhancement] : []);
+    
+    // If enhancementIds provided, use the new way
+    if (enhancementIds && enhancementIds.length > 0) {
+      enhancementList = enhancementIds;
+    }
     
     if (!enhancementList || enhancementList.length === 0) {
       return new Response(
-        JSON.stringify({ error: 'enhancement or enhancements is required' }),
+        JSON.stringify({ error: 'enhancement, enhancements, or enhancementIds is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -92,14 +97,8 @@ serve(async (req) => {
       );
     }
 
-    // Handle enhancement as string or object
-    const enhancementTitles = enhancementList.map((enh: any) => 
-      typeof enh === 'string' ? enh : enh.title
-    );
-    console.log('Generating enhanced image for:', enhancementTitles.join(', '));
-
-    // Build combined enhancement prompt from database
-    let enhancementPrompt = '';
+    // Handle enhancement as string, object, or ID
+    const enhancementTitles: string[] = [];
     const prompts: string[] = [];
     
     // Get system prompt based on classification/category
@@ -117,26 +116,64 @@ serve(async (req) => {
       }
     }
     
+    // Process each enhancement
     for (const enh of enhancementList) {
-      const enhancementType = typeof enh === 'string' ? enh : enh.title;
+      let enhancementData = null;
       
-      // Try to get prompt from database first
-      const { data: promptData } = await supabase
-        .from('enhancement_prompts')
-        .select('prompt_template')
-        .eq('enhancement_type', enhancementType)
-        .eq('is_active', true)
-        .maybeSingle();
-      
-      if (promptData?.prompt_template) {
-        // Use database prompt
-        prompts.push(promptData.prompt_template);
-        console.log('Using database prompt for:', enhancementType);
+      // Check if it's an ID (UUID format) or legacy format
+      if (typeof enh === 'string' && enh.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        // It's an ID - query from database
+        console.log('Querying enhancement by ID:', enh);
+        const { data: promptData } = await supabase
+          .from('enhancement_prompts')
+          .select('enhancement_type, display_name, prompt_template')
+          .eq('id', enh)
+          .eq('is_active', true)
+          .maybeSingle();
+        
+        if (promptData) {
+          enhancementData = promptData;
+          enhancementTitles.push(promptData.display_name);
+          prompts.push(promptData.prompt_template);
+          console.log('✅ Found enhancement:', promptData.display_name);
+        } else {
+          console.log('⚠️ Enhancement ID not found:', enh);
+        }
       } else {
-        // Fallback: use title and description as prompt
-        console.log('No database prompt found, using title and description for:', enhancementType);
-        prompts.push(`${enhancementType}: Apply this enhancement professionally for e-commerce product photography.`);
+        // Legacy format - string or object with title
+        const displayName = typeof enh === 'string' ? enh : enh.title;
+        enhancementTitles.push(displayName);
+        
+        // Try to find in database by display_name as fallback
+        const { data: promptData } = await supabase
+          .from('enhancement_prompts')
+          .select('prompt_template')
+          .eq('display_name', displayName)
+          .eq('is_active', true)
+          .maybeSingle();
+        
+        if (promptData?.prompt_template) {
+          prompts.push(promptData.prompt_template);
+          console.log('✅ Found legacy enhancement by name:', displayName);
+        } else {
+          // Ultimate fallback: use display name as prompt
+          prompts.push(`${displayName}: Apply this enhancement professionally.`);
+          console.log('⚠️ Using fallback prompt for:', displayName);
+        }
       }
+    }
+    
+    console.log('Generating enhanced image for:', enhancementTitles.join(', '));
+    
+    // Add custom prompts if provided
+    if (customFurniture && customFurniture.trim()) {
+      prompts.push(`Custom furniture request: ${customFurniture.trim()}`);
+      console.log('Added custom furniture prompt:', customFurniture.trim());
+    }
+    
+    if (customPose && customPose.trim()) {
+      prompts.push(`Custom pose request: ${customPose.trim()}`);
+      console.log('Added custom pose prompt:', customPose.trim());
     }
     
     // Combine multiple prompts
@@ -421,10 +458,41 @@ serve(async (req) => {
       );
     }
 
+    // ✅ IMAGE GENERATED SUCCESSFULLY - NOW DEDUCT TOKEN
+    if (userId) {
+      try {
+        const { data: deductResult, error: deductError } = await supabase.rpc('deduct_user_tokens', {
+          p_user_id: userId,
+          p_amount: 1
+        });
+
+        if (deductError) {
+          console.error('❌ Error deducting tokens:', deductError);
+          // Log error but continue (user got the image, we'll fix token manually if needed)
+        } else if (deductResult && deductResult.length > 0) {
+          const result = deductResult[0];
+          if (result.success) {
+            console.log('✅ Token deducted successfully:', {
+              subscription_used: result.subscription_used,
+              purchased_used: result.purchased_used,
+              remaining_subscription: result.remaining_subscription,
+              remaining_purchased: result.remaining_purchased,
+              total_remaining: result.remaining_subscription + result.remaining_purchased
+            });
+          } else {
+            console.error('❌ Failed to deduct tokens:', result.message);
+          }
+        }
+      } catch (deductError) {
+        console.error('❌ Exception deducting tokens:', deductError);
+      }
+    }
+
     // Save the generated image to Supabase storage
     let savedImageUrl = generatedImageUrl;
     
     if (userId) {
+      // Save the image to storage
       try {
         // Convert base64 to blob if needed
         let imageBlob;
@@ -466,23 +534,13 @@ serve(async (req) => {
               user_email: userEmail,
               original_image_path: storagePath || 'unknown',
               generated_image_path: fileName,
-              enhancement_type: enhancementTitle,
+              enhancement_type: enhancementTitles.join(', '),
               classification_result: classification || 'unknown',
               prompt_used: generatedPrompt
             });
 
           if (historyError) {
             console.error('Error saving to history:', historyError);
-          }
-
-          // Deduct tokens using dual token system (subscription tokens first)
-          const { error: deductError } = await supabase.rpc('deduct_tokens_dual', {
-            p_user_id: userId,
-            p_amount: 1
-          });
-
-          if (deductError) {
-            console.error('Error deducting tokens:', deductError);
           }
         }
       } catch (saveError) {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -15,17 +15,84 @@ import {
   XCircle,
   Clock,
   Image as ImageIcon,
-  Wand2
+  Wand2,
+  Loader2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { supabase } from '@/integrations/supabase/client';
 import ApiPlayground from './ApiPlayground';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
 
+interface Enhancement {
+  enhancement_id: string;
+  enhancement_type: string;
+  display_name: string;
+  description: string;
+  category: string;
+  is_default: boolean;
+  sort_order: number;
+}
+
 export default function UserApiGuide() {
   const { toast } = useToast();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [enhancements, setEnhancements] = useState<Enhancement[]>([]);
+  const [loadingEnhancements, setLoadingEnhancements] = useState(true);
+
+  // Load enhancements from database
+  useEffect(() => {
+    loadEnhancements();
+  }, []);
+
+  const loadEnhancements = async () => {
+    try {
+      // Query enhancements directly from database using type assertion
+      const { data, error } = await supabase
+        .from('enhancement_prompts' as any)
+        .select(`
+          id,
+          enhancement_type,
+          display_name,
+          description,
+          is_active,
+          category_enhancements!inner (
+            sort_order,
+            image_categories!inner (
+              category_code,
+              category_name
+            )
+          )
+        `)
+        .eq('is_active', true)
+        .order('category_enhancements.sort_order');
+
+      if (!error && data) {
+        // Transform data to match Enhancement interface
+        const transformedData: Enhancement[] = data.map((item: any) => ({
+          enhancement_id: item.id,
+          enhancement_type: item.enhancement_type,
+          display_name: item.display_name,
+          description: item.description,
+          category: item.category_enhancements[0]?.image_categories?.category_code || '',
+          is_default: false,
+          sort_order: item.category_enhancements[0]?.sort_order || 0
+        }));
+
+        setEnhancements(transformedData);
+      }
+    } catch (error) {
+      console.error('Error loading enhancements:', error);
+      toast({
+        title: 'Error',
+        description: 'Gagal memuat enhancement list',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingEnhancements(false);
+    }
+  };
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -487,29 +554,34 @@ generateImage(
           <Card>
             <CardHeader>
               <CardTitle>Jenis Enhancement</CardTitle>
-              <CardDescription>Pilih enhancement sesuai kebutuhan Anda</CardDescription>
+              <CardDescription>Pilih enhancement sesuai kebutuhan Anda (diambil dari database)</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid md:grid-cols-2 gap-3">
-                {[
-                  { value: 'add_female_model', label: 'Model Wanita', desc: 'Tampilkan produk dipakai model wanita' },
-                  { value: 'add_male_model', label: 'Model Pria', desc: 'Tampilkan produk dipakai model pria' },
-                  { value: 'add_female_hijab_model', label: 'Model Hijab', desc: 'Model wanita berhijab' },
-                  { value: 'add_mannequin', label: 'Mannequin', desc: 'Tampilkan di mannequin' },
-                  { value: 'remove_background', label: 'Hapus Background', desc: 'Background putih bersih' },
-                  { value: 'improve_lighting', label: 'Perbaiki Lighting', desc: 'Tingkatkan pencahayaan' },
-                  { value: 'enhance_background', label: 'Enhance Background', desc: 'Background lebih profesional' },
-                  { value: 'lifestyle', label: 'Lifestyle Photo', desc: 'Foto lifestyle dengan model' },
-                  { value: 'ubah pose', label: '✨ Custom Pose (NEW)', desc: 'Ubah pose dengan deskripsi spesifik', isNew: true },
-                  { value: 'virtual staging', label: '✨ Custom Furniture (NEW)', desc: 'Tambah furniture spesifik ke ruangan', isNew: true },
-                ].map((item) => (
-                  <div key={item.value} className={`p-3 border rounded-lg hover:border-primary transition-colors ${item.isNew ? 'bg-primary/5 border-primary/30' : ''}`}>
-                    <code className="text-xs bg-muted px-2 py-1 rounded block mb-2">{item.value}</code>
-                    <p className="font-semibold text-sm">{item.label}</p>
-                    <p className="text-xs text-muted-foreground">{item.desc}</p>
+              {loadingEnhancements ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  <span className="ml-2 text-muted-foreground">Loading enhancements...</span>
+                </div>
+              ) : (
+                <>
+                  <div className="bg-blue-500/10 border border-blue-500/50 rounded-lg p-4 mb-4">
+                    <p className="text-sm font-semibold text-blue-500 mb-2">💡 Tip:</p>
+                    <p className="text-sm text-muted-foreground">
+                      Anda bisa menggunakan <strong>Display Name</strong> (dengan emoji) atau <strong>Enhancement Type</strong> (tanpa emoji). Keduanya valid!
+                    </p>
                   </div>
-                ))}
-              </div>
+                  <div className="grid md:grid-cols-2 gap-3">
+                    {enhancements.map((item) => (
+                      <div key={item.enhancement_id} className="p-3 border rounded-lg hover:border-primary transition-colors">
+                        <code className="text-xs bg-muted px-2 py-1 rounded block mb-2">{item.enhancement_type}</code>
+                        <p className="font-semibold text-sm">{item.display_name}</p>
+                        <p className="text-xs text-muted-foreground">{item.description || '-'}</p>
+                        <Badge variant="outline" className="mt-2 text-xs">{item.category}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

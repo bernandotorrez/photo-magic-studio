@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,36 +23,33 @@ serve(async (req) => {
 
     console.log('Classifying portrait image:', imageUrl);
 
-    // AI Photographer specific enhancements
-    const AI_PHOTOGRAPHER_OPTIONS = [
-      '🎨 Virtual Outfit Change (Ganti Baju)',
-      '💃 Ubah Pose (Pose Variation)',
-      '🌆 Ganti Background',
-      '📸 Professional Portrait Enhancement',
-      '✨ Beauty Enhancement (Smooth Skin)',
-      '🎭 Ubah Ekspresi Wajah',
-      '💼 Business Portrait Style',
-      '🌟 Fashion Editorial Style',
-      '🎬 Cinematic Look',
-      '🖼️ Studio Portrait dengan Lighting Profesional',
-    ];
+    // Get Supabase client
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
+    const supabase = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!);
 
-    const BASE_ENHANCEMENTS = [
-      'Tingkatkan Kualitas Gambar',
-      'Perbaiki Pencahayaan',
-      'Hapus Background',
-      'Sesuaikan Warna',
-      'Crop & Center',
-      'Pertajam Detail',
-      'White Balance',
-      'Sesuaikan Brightness',
-      'Tingkatkan Kontras',
-    ];
+    // Query enhancements from database using the function
+    const { data: enhancements, error } = await supabase
+      .rpc('get_enhancements_by_category', { p_category_code: 'portrait' });
 
-    const enhancementOptions = [
-      ...AI_PHOTOGRAPHER_OPTIONS,
-      ...BASE_ENHANCEMENTS,
-    ];
+    if (error) {
+      console.error('Error fetching enhancements:', error);
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch enhancements' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Format enhancements with ID for frontend
+    const enhancementOptions = enhancements.map((enh: any) => ({
+      id: enh.enhancement_id,
+      enhancement_type: enh.enhancement_type,
+      display_name: enh.display_name,
+      description: enh.description,
+      is_default: enh.is_default,
+    }));
+
+    console.log(`Found ${enhancementOptions.length} enhancements for portrait category`);
 
     return new Response(
       JSON.stringify({

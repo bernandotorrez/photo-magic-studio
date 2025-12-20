@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,37 +23,33 @@ serve(async (req) => {
 
     console.log('Classifying exterior image:', imageUrl);
 
-    // Exterior Design specific enhancements
-    const EXTERIOR_DESIGN_OPTIONS = [
-      '🏠 Facade Renovation (Ubah Tampilan Depan)',
-      '🌳 Landscaping Enhancement (Taman & Tanaman)',
-      '🌅 Ubah Waktu (Day/Night/Golden Hour)',
-      '⛅ Ubah Cuaca (Sunny/Cloudy/Rainy)',
-      '🎨 Ubah Warna Cat Eksterior',
-      '🪟 Upgrade Jendela & Pintu',
-      '💡 Tambah Outdoor Lighting',
-      '🏊 Tambah Pool/Water Feature',
-      '🚗 Tambah Driveway & Parking',
-      '🌺 Tambah Garden & Flowers',
-      '🏗️ Modern Architecture Style',
-      '🏛️ Classic Architecture Style',
-    ];
+    // Get Supabase client
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
+    const supabase = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!);
 
-    const BASE_ENHANCEMENTS = [
-      'Tingkatkan Kualitas Gambar',
-      'Perbaiki Pencahayaan',
-      'Sesuaikan Warna',
-      'Crop & Center',
-      'Pertajam Detail',
-      'White Balance',
-      'Sesuaikan Brightness',
-      'Tingkatkan Kontras',
-    ];
+    // Query enhancements from database using the function
+    const { data: enhancements, error } = await supabase
+      .rpc('get_enhancements_by_category', { p_category_code: 'exterior' });
 
-    const enhancementOptions = [
-      ...EXTERIOR_DESIGN_OPTIONS,
-      ...BASE_ENHANCEMENTS,
-    ];
+    if (error) {
+      console.error('Error fetching enhancements:', error);
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch enhancements' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Format enhancements with ID for frontend
+    const enhancementOptions = enhancements.map((enh: any) => ({
+      id: enh.enhancement_id,
+      enhancement_type: enh.enhancement_type,
+      display_name: enh.display_name,
+      description: enh.description,
+      is_default: enh.is_default,
+    }));
+
+    console.log(`Found ${enhancementOptions.length} enhancements for exterior category`);
 
     return new Response(
       JSON.stringify({
