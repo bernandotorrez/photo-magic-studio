@@ -112,6 +112,21 @@ serve(async (req) => {
     let enhancementPrompt = '';
     const prompts: string[] = [];
     
+    // Get system prompt based on classification/category
+    let systemPrompt = '';
+    if (classification) {
+      const { data: categoryData } = await supabase
+        .from('image_categories')
+        .select('system_prompt')
+        .eq('category_name', classification)
+        .maybeSingle();
+      
+      if (categoryData?.system_prompt) {
+        systemPrompt = categoryData.system_prompt;
+        console.log('Using system prompt for category:', classification);
+      }
+    }
+    
     for (const enh of enhancementList) {
       const enhancementType = typeof enh === 'string' ? enh : enh.title;
       
@@ -135,11 +150,19 @@ serve(async (req) => {
     }
     
     // Combine multiple prompts
+    let mainPrompt = '';
     if (prompts.length === 1) {
-      enhancementPrompt = prompts[0];
+      mainPrompt = prompts[0];
     } else {
       // Combine multiple prompts with proper formatting
-      enhancementPrompt = `Apply the following enhancements to this image:\n\n${prompts.map((p, i) => `${i + 1}. ${p}`).join('\n\n')}\n\nEnsure all enhancements work together harmoniously and create a cohesive final result.`;
+      mainPrompt = `Apply the following enhancements to this image:\n\n${prompts.map((p, i) => `${i + 1}. ${p}`).join('\n\n')}\n\nEnsure all enhancements work together harmoniously and create a cohesive final result.`;
+    }
+    
+    // Prepend system prompt if available
+    if (systemPrompt) {
+      enhancementPrompt = `${systemPrompt}\n\n${mainPrompt}`;
+    } else {
+      enhancementPrompt = mainPrompt;
     }
 
     // Use KIE AI API
