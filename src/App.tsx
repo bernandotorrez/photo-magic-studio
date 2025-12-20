@@ -13,6 +13,7 @@ import DashboardStats from "./pages/DashboardStats";
 import AiPhotographer from "./pages/AiPhotographer";
 import InteriorDesign from "./pages/InteriorDesign";
 import ExteriorDesign from "./pages/ExteriorDesign";
+import FoodEnhancement from "./pages/FoodEnhancement";
 import ComingSoon from "./pages/ComingSoon";
 import Admin from "./pages/Admin";
 import ManageUsers from "./pages/ManageUsers";
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/ai-photographer" element={<AiPhotographer />} />
             <Route path="/interior-design" element={<InteriorDesign />} />
             <Route path="/exterior-design" element={<ExteriorDesign />} />
+            <Route path="/food-enhancement" element={<FoodEnhancement />} />
             <Route path="/coming-soon" element={<ComingSoon />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/users" element={<ManageUsers />} />
