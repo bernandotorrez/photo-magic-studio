@@ -16,7 +16,7 @@ interface Profile {
 }
 
 interface ImageUploaderProps {
-  onImageUploaded: (url: string, path: string, classification: string, options: string[]) => void;
+  onImageUploaded: (url: string, path: string, classification: string, options: any[]) => void; // Support both object[] and string[]
   profile: Profile | null;
   classifyFunction?: string; // Edge function name for classification
 }

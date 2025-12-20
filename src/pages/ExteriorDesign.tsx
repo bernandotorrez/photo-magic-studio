@@ -26,7 +26,7 @@ export default function ExteriorDesign() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imagePath, setImagePath] = useState<string | null>(null);
   const [classification, setClassification] = useState<string | null>(null);
-  const [enhancementOptions, setEnhancementOptions] = useState<string[]>([]);
+  const [enhancementOptions, setEnhancementOptions] = useState<any[]>([]); // Support both object[] and string[]
   const [selectedEnhancements, setSelectedEnhancements] = useState<string[]>([]);
   const [generatedResults, setGeneratedResults] = useState<GeneratedResult[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);

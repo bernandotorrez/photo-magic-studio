@@ -54,7 +54,7 @@ export default function DashboardNew() {
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [uploadedImagePath, setUploadedImagePath] = useState<string | null>(null);
   const [classification, setClassification] = useState<string | null>(null);
-  const [enhancementOptions, setEnhancementOptions] = useState<string[]>([]);
+  const [enhancementOptions, setEnhancementOptions] = useState<any[]>([]); // Support both object[] and string[]
   const [selectedEnhancements, setSelectedEnhancements] = useState<string[]>([]);
   const [generatedResults, setGeneratedResults] = useState<GeneratedResult[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);

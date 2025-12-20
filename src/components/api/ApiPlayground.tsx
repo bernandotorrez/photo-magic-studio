@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,20 +7,90 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Play, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
+
+interface Enhancement {
+  enhancement_id: string;
+  enhancement_type: string;
+  display_name: string;
+  description: string;
+  category: string;
+  is_default: boolean;
+  sort_order: number;
+}
 
 export default function ApiPlayground() {
   const { toast } = useToast();
   const [apiKey, setApiKey] = useState('');
   const [imageUrl, setImageUrl] = useState('');
-  const [enhancement, setEnhancement] = useState('add_female_model');
+  const [enhancement, setEnhancement] = useState('');
   const [classification, setClassification] = useState('clothing');
   const [customPose, setCustomPose] = useState('');
   const [customFurniture, setCustomFurniture] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [enhancements, setEnhancements] = useState<Enhancement[]>([]);
+  const [loadingEnhancements, setLoadingEnhancements] = useState(true);
+
+  // Load enhancements from database
+  useEffect(() => {
+    loadEnhancements();
+  }, []);
+
+  const loadEnhancements = async () => {
+    try {
+      // Query enhancements directly from database using type assertion
+      const { data, error } = await supabase
+        .from('enhancement_prompts' as any)
+        .select(`
+          id,
+          enhancement_type,
+          display_name,
+          description,
+          is_active,
+          category_enhancements!inner (
+            sort_order,
+            image_categories!inner (
+              category_code,
+              category_name
+            )
+          )
+        `)
+        .eq('is_active', true)
+        .order('category_enhancements.sort_order');
+
+      if (!error && data) {
+        // Transform data to match Enhancement interface
+        const transformedData: Enhancement[] = data.map((item: any) => ({
+          enhancement_id: item.id,
+          enhancement_type: item.enhancement_type,
+          display_name: item.display_name,
+          description: item.description,
+          category: item.category_enhancements[0]?.image_categories?.category_code || '',
+          is_default: false,
+          sort_order: item.category_enhancements[0]?.sort_order || 0
+        }));
+
+        setEnhancements(transformedData);
+        // Set default enhancement if available
+        if (transformedData.length > 0) {
+          setEnhancement(transformedData[0].enhancement_type);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading enhancements:', error);
+      toast({
+        title: 'Error',
+        description: 'Gagal memuat enhancement list',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingEnhancements(false);
+    }
+  };
 
   const handleTest = async () => {
     if (!apiKey) {
@@ -155,23 +225,25 @@ export default function ApiPlayground() {
 
           <div className="space-y-2">
             <Label htmlFor="enhancement">Enhancement Type</Label>
-            <Select value={enhancement} onValueChange={setEnhancement}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="add_female_model">Model Wanita</SelectItem>
-                <SelectItem value="add_male_model">Model Pria</SelectItem>
-                <SelectItem value="add_female_hijab_model">Model Hijab</SelectItem>
-                <SelectItem value="add_mannequin">Mannequin</SelectItem>
-                <SelectItem value="remove_background">Remove Background</SelectItem>
-                <SelectItem value="improve_lighting">Improve Lighting</SelectItem>
-                <SelectItem value="enhance_background">Enhance Background</SelectItem>
-                <SelectItem value="lifestyle">Lifestyle Photo</SelectItem>
-                <SelectItem value="ubah pose">✨ Custom Pose (NEW)</SelectItem>
-                <SelectItem value="virtual staging">✨ Custom Furniture (NEW)</SelectItem>
-              </SelectContent>
-            </Select>
+            {loadingEnhancements ? (
+              <div className="flex items-center justify-center py-4 border rounded-lg">
+                <Loader2 className="w-4 h-4 animate-spin text-primary mr-2" />
+                <span className="text-sm text-muted-foreground">Loading enhancements...</span>
+              </div>
+            ) : (
+              <Select value={enhancement} onValueChange={setEnhancement}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih enhancement" />
+                </SelectTrigger>
+                <SelectContent>
+                  {enhancements.map((item) => (
+                    <SelectItem key={item.enhancement_id} value={item.enhancement_type}>
+                      {item.display_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           {/* Custom Pose Input */}
