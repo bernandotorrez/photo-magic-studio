@@ -17,7 +17,8 @@ import {
   Home,
   Building2,
   Shirt,
-  Rocket
+  Rocket,
+  CreditCard
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -86,6 +87,7 @@ export function Sidebar({ isAdmin = false, onSignOut }: SidebarProps) {
     },
     { icon: Key, label: 'API Keys', path: '/api-keys', badge: 'Basic+', badgeVariant: 'default' },
     { icon: BookOpen, label: 'Dokumentasi API', path: '/api-documentation' },
+    { icon: CreditCard, label: 'Paket & Harga', path: '/pricing' },
     { icon: Users, label: 'Kelola User', path: '/admin/users', adminOnly: true },
     { icon: Shield, label: 'Admin Panel', path: '/admin', adminOnly: true },
     { icon: Settings, label: 'Pengaturan', path: '/settings' },
