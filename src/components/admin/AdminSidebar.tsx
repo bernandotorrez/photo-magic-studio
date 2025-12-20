@@ -10,7 +10,8 @@ import {
   Home,
   Wand2,
   Link2,
-  CreditCard
+  CreditCard,
+  Package
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -37,6 +38,12 @@ const menuItems = [
     label: 'Payments',
     icon: CreditCard,
     description: 'Manage token purchases',
+  },
+  {
+    id: 'tiers',
+    label: 'Subscription Tiers',
+    icon: Package,
+    description: 'Manage subscription plans',
   },
   {
     id: 'enhancements',

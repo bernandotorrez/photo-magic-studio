@@ -11,6 +11,7 @@ import { AdminSettings } from '@/components/admin/AdminSettings';
 import EnhancementPromptsManager from '@/components/admin/EnhancementPromptsManager';
 import CategoryEnhancementMapper from '@/components/admin/CategoryEnhancementMapper';
 import PaymentManagement from '@/components/admin/PaymentManagement';
+import SubscriptionTiersManager from '@/components/admin/SubscriptionTiersManager';
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -88,6 +89,8 @@ export default function Admin() {
         return <CategoryEnhancementMapper />;
       case 'payments':
         return <PaymentManagement />;
+      case 'tiers':
+        return <SubscriptionTiersManager />;
       case 'generations':
         return (
           <div className="space-y-6">
