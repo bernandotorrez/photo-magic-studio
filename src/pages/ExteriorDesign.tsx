@@ -5,6 +5,7 @@ import { Layout } from '@/components/Layout';
 import { ImageUploader } from '@/components/dashboard/ImageUploader';
 import { EnhancementOptions } from '@/components/dashboard/EnhancementOptions';
 import { GenerationResult } from '@/components/dashboard/GenerationResult';
+import { TokenAlert } from '@/components/TokenAlert';
 import { Building2, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -86,6 +87,9 @@ export default function ExteriorDesign() {
             </div>
           </div>
         </div>
+
+        {/* Token Alert */}
+        <TokenAlert profile={profile} />
 
         {/* Info Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">

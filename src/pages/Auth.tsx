@@ -43,6 +43,7 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isVerifyingCaptcha, setIsVerifyingCaptcha] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [isRateLimited, setIsRateLimited] = useState(false);
@@ -199,6 +200,7 @@ export default function Auth() {
   const verifyCaptcha = async (token: string): Promise<boolean> => {
     if (!RECAPTCHA_SITE_KEY) return true;
     
+    setIsVerifyingCaptcha(true);
     try {
       const { data, error } = await supabase.functions.invoke('verify-captcha', {
         body: { token },
@@ -213,6 +215,8 @@ export default function Auth() {
     } catch (error) {
       console.error('CAPTCHA verification failed:', error);
       return false;
+    } finally {
+      setIsVerifyingCaptcha(false);
     }
   };
 
@@ -258,70 +262,76 @@ export default function Auth() {
     e.preventDefault();
     if (!validateForm(false)) return;
 
-    // Check rate limit first
-    const { isBlocked, remaining } = await checkRateLimit(email);
-    if (isBlocked) {
-      setIsRateLimited(true);
-      setRemainingAttempts(0);
-      toast({
-        title: 'Terlalu Banyak Percobaan',
-        description: 'Akun Anda terkunci sementara. Silakan coba lagi dalam 15 menit.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    setRemainingAttempts(remaining);
+    setIsLoading(true);
 
-    // Verify CAPTCHA
-    if (RECAPTCHA_SITE_KEY && captchaToken) {
-      const captchaValid = await verifyCaptcha(captchaToken);
-      if (!captchaValid) {
+    try {
+      // Check rate limit first
+      const { isBlocked, remaining } = await checkRateLimit(email);
+      if (isBlocked) {
+        setIsRateLimited(true);
+        setRemainingAttempts(0);
         toast({
-          title: 'Verifikasi Gagal',
-          description: 'CAPTCHA tidak valid. Silakan coba lagi.',
+          title: 'Terlalu Banyak Percobaan',
+          description: 'Akun Anda terkunci sementara. Silakan coba lagi dalam 15 menit.',
           variant: 'destructive',
         });
+        setIsLoading(false);
+        return;
+      }
+      setRemainingAttempts(remaining);
+
+      // Verify CAPTCHA
+      if (RECAPTCHA_SITE_KEY && captchaToken) {
+        const captchaValid = await verifyCaptcha(captchaToken);
+        if (!captchaValid) {
+          toast({
+            title: 'Verifikasi Gagal',
+            description: 'CAPTCHA tidak valid. Silakan coba lagi.',
+            variant: 'destructive',
+          });
+          // Reset CAPTCHA
+          if (loginWidgetId.current !== null && window.grecaptcha) {
+            window.grecaptcha.reset(loginWidgetId.current);
+          }
+          setCaptchaToken(null);
+          setIsLoading(false);
+          return;
+        }
+      }
+      
+      const { error } = await signIn(email, password);
+      
+      if (error) {
+        // Record failed login attempt
+        await recordLoginAttempt(email);
+
+        let errorMessage = error.message;
+        if (error.message === 'Invalid login credentials') {
+          errorMessage = 'Email atau password salah';
+        } else if (error.message === 'Email not confirmed') {
+          errorMessage = 'Email belum diverifikasi. Silakan cek inbox email Anda.';
+        }
+
+        toast({
+          title: 'Login Gagal',
+          description: errorMessage,
+          variant: 'destructive',
+        });
+
         // Reset CAPTCHA
         if (loginWidgetId.current !== null && window.grecaptcha) {
           window.grecaptcha.reset(loginWidgetId.current);
         }
         setCaptchaToken(null);
-        return;
+      } else {
+        toast({
+          title: 'Berhasil Login',
+          description: 'Selamat datang kembali!',
+        });
+        navigate('/dashboard');
       }
-    }
-    
-    setIsLoading(true);
-    const { error } = await signIn(email, password);
-    setIsLoading(false);
-    
-    if (error) {
-      // Record failed login attempt
-      await recordLoginAttempt(email);
-
-      let errorMessage = error.message;
-      if (error.message === 'Invalid login credentials') {
-        errorMessage = 'Email atau password salah';
-      } else if (error.message === 'Email not confirmed') {
-        errorMessage = 'Email belum diverifikasi. Silakan cek inbox email Anda.';
-      }
-
-      toast({
-        title: 'Login Gagal',
-        description: errorMessage,
-        variant: 'destructive',
-      });
-
-      // Reset CAPTCHA
-      if (loginWidgetId.current !== null && window.grecaptcha) {
-        window.grecaptcha.reset(loginWidgetId.current);
-      }
-      setCaptchaToken(null);
-    } else {
-      toast({
-        title: 'Berhasil Login',
-        description: 'Selamat datang kembali!',
-      });
-      navigate('/dashboard');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -329,52 +339,57 @@ export default function Auth() {
     e.preventDefault();
     if (!validateForm(true)) return;
 
-    // Verify CAPTCHA
-    if (RECAPTCHA_SITE_KEY && captchaToken) {
-      const captchaValid = await verifyCaptcha(captchaToken);
-      if (!captchaValid) {
-        toast({
-          title: 'Verifikasi Gagal',
-          description: 'CAPTCHA tidak valid. Silakan coba lagi.',
-          variant: 'destructive',
-        });
+    setIsLoading(true);
+
+    try {
+      // Verify CAPTCHA
+      if (RECAPTCHA_SITE_KEY && captchaToken) {
+        const captchaValid = await verifyCaptcha(captchaToken);
+        if (!captchaValid) {
+          toast({
+            title: 'Verifikasi Gagal',
+            description: 'CAPTCHA tidak valid. Silakan coba lagi.',
+            variant: 'destructive',
+          });
+          // Reset CAPTCHA
+          if (registerWidgetId.current !== null && window.grecaptcha) {
+            window.grecaptcha.reset(registerWidgetId.current);
+          }
+          setCaptchaToken(null);
+          setIsLoading(false);
+          return;
+        }
+      }
+      
+      const { error } = await signUp(email, password, fullName);
+      
+      if (error) {
+        if (error.message.includes('already registered')) {
+          toast({
+            title: 'Email Sudah Terdaftar',
+            description: 'Silakan login atau gunakan email lain.',
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: 'Registrasi Gagal',
+            description: error.message,
+            variant: 'destructive',
+          });
+        }
         // Reset CAPTCHA
         if (registerWidgetId.current !== null && window.grecaptcha) {
           window.grecaptcha.reset(registerWidgetId.current);
         }
         setCaptchaToken(null);
-        return;
-      }
-    }
-    
-    setIsLoading(true);
-    const { error } = await signUp(email, password, fullName);
-    setIsLoading(false);
-    
-    if (error) {
-      if (error.message.includes('already registered')) {
-        toast({
-          title: 'Email Sudah Terdaftar',
-          description: 'Silakan login atau gunakan email lain.',
-          variant: 'destructive',
-        });
       } else {
         toast({
-          title: 'Registrasi Gagal',
-          description: error.message,
-          variant: 'destructive',
+          title: 'Registrasi Berhasil',
+          description: 'Silakan cek email Anda untuk verifikasi akun.',
         });
       }
-      // Reset CAPTCHA
-      if (registerWidgetId.current !== null && window.grecaptcha) {
-        window.grecaptcha.reset(registerWidgetId.current);
-      }
-      setCaptchaToken(null);
-    } else {
-      toast({
-        title: 'Registrasi Berhasil',
-        description: 'Silakan cek email Anda untuk verifikasi akun.',
-      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -481,9 +496,21 @@ export default function Auth() {
                     type="submit" 
                     className="w-full" 
                     size="lg" 
-                    disabled={isLoading || isRateLimited}
+                    disabled={isLoading || isVerifyingCaptcha || isRateLimited}
                   >
-                    {isLoading ? 'Memproses...' : 'Masuk'}
+                    {isVerifyingCaptcha ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        Memverifikasi CAPTCHA...
+                      </>
+                    ) : isLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        Memproses Login...
+                      </>
+                    ) : (
+                      'Masuk'
+                    )}
                   </Button>
                 </form>
               </TabsContent>
@@ -550,8 +577,20 @@ export default function Auth() {
                     </div>
                   )}
                   
-                  <Button type="submit" variant="hero" className="w-full" size="lg" disabled={isLoading}>
-                    {isLoading ? 'Memproses...' : 'Daftar Sekarang'}
+                  <Button type="submit" variant="hero" className="w-full" size="lg" disabled={isLoading || isVerifyingCaptcha}>
+                    {isVerifyingCaptcha ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        Memverifikasi CAPTCHA...
+                      </>
+                    ) : isLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        Memproses Registrasi...
+                      </>
+                    ) : (
+                      'Daftar Sekarang'
+                    )}
                   </Button>
 
                   <p className="text-xs text-muted-foreground text-center">

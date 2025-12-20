@@ -23,10 +23,13 @@ import {
   Clock
 } from 'lucide-react';
 
+import { TokenAlert } from '@/components/TokenAlert';
+
 interface Profile {
   subscription_plan: string;
-  monthly_generate_limit: number;
-  current_month_generates: number;
+  subscription_tokens: number;
+  purchased_tokens: number;
+  subscription_expires_at: string | null;
 }
 
 interface DailyStats {
@@ -75,22 +78,12 @@ export default function DashboardStats() {
     
     const { data } = await supabase
       .from('profiles')
-      .select('*')
+      .select('subscription_plan, subscription_tokens, purchased_tokens, subscription_expires_at')
       .eq('user_id', user.id)
       .maybeSingle();
     
-    if (data && user.email) {
-      // Get actual generation count by email
-      const { data: emailCount } = await supabase
-        .rpc('get_generation_count_by_email', { p_email: user.email });
-      
-      // Update profile with email-based count
-      setProfile({
-        ...data,
-        current_month_generates: emailCount || 0
-      });
-    } else if (data) {
-      setProfile(data);
+    if (data) {
+      setProfile(data as Profile);
     }
   };
 
@@ -212,6 +205,9 @@ export default function DashboardStats() {
           </p>
         </div>
 
+        {/* Token Alert */}
+        <TokenAlert profile={profile} />
+
         {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
           <Card>
@@ -242,31 +238,23 @@ export default function DashboardStats() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Bulan Ini</CardTitle>
+              <CardTitle className="text-sm font-medium">Token Bulanan</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {profile?.current_month_generates || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                dari {profile?.monthly_generate_limit || 0} limit
-              </p>
+              <div className="text-2xl font-bold">{profile?.subscription_tokens || 0}</div>
+              <p className="text-xs text-muted-foreground">Token dari paket bulanan</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Paket</CardTitle>
+              <CardTitle className="text-sm font-medium">Token Top-Up</CardTitle>
               <Zap className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold capitalize">
-                {profile?.subscription_plan || 'Free'}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Paket langganan aktif
-              </p>
+              <div className="text-2xl font-bold">{profile?.purchased_tokens || 0}</div>
+              <p className="text-xs text-muted-foreground">Token yang tidak hangus</p>
             </CardContent>
           </Card>
         </div>
@@ -363,85 +351,47 @@ export default function DashboardStats() {
             </CardContent>
           </Card>
 
-          {/* Monthly Usage Progress */}
+          {/* Token Balance Card */}
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5" />
-                Penggunaan Quota Bulanan
+                <Zap className="w-5 h-5" />
+                Saldo Token
               </CardTitle>
-              <CardDescription>
-                Progress penggunaan limit generate bulan ini
-              </CardDescription>
+              <CardDescription>Balance token Anda saat ini</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {/* Progress Bar */}
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium">
-                      {profile?.current_month_generates || 0} / {profile?.monthly_generate_limit || 0} Generate
-                    </span>
-                    <span className="text-muted-foreground">
-                      {profile?.monthly_generate_limit 
-                        ? Math.round(((profile?.current_month_generates || 0) / profile.monthly_generate_limit) * 100)
-                        : 0}%
-                    </span>
-                  </div>
-                  <div className="h-4 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-500"
-                      style={{ 
-                        width: `${profile?.monthly_generate_limit 
-                          ? Math.min(((profile?.current_month_generates || 0) / profile.monthly_generate_limit) * 100, 100)
-                          : 0}%` 
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
-                  <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                {/* Token Breakdown */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
                     <div className="text-2xl font-bold text-primary">
-                      {profile?.current_month_generates || 0}
+                      {profile?.subscription_tokens || 0}
                     </div>
-                    <div className="text-sm text-muted-foreground">Sudah Digunakan</div>
+                    <div className="text-sm text-muted-foreground">Token Bulanan</div>
+                    {profile?.subscription_expires_at && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Expire: {new Date(profile.subscription_expires_at).toLocaleDateString('id-ID')}
+                      </div>
+                    )}
                   </div>
-                  
-                  <div className="p-4 rounded-lg bg-muted/50 border border-border">
-                    <div className="text-2xl font-bold text-green-600">
-                      {(profile?.monthly_generate_limit || 0) - (profile?.current_month_generates || 0)}
-                    </div>
-                    <div className="text-sm text-muted-foreground">Sisa Quota</div>
+
+                  <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+                    <div className="text-2xl font-bold text-green-600">{profile?.purchased_tokens || 0}</div>
+                    <div className="text-sm text-muted-foreground">Token Top-Up</div>
+                    <div className="text-xs text-green-600 mt-1">Tidak akan hangus</div>
                   </div>
-                  
-                  <div className="p-4 rounded-lg bg-muted/50 border border-border">
-                    <div className="text-2xl font-bold capitalize">
-                      {profile?.subscription_plan || 'Free'}
+
+                  <div className="p-4 rounded-lg bg-accent/10 border border-accent/20">
+                    <div className="text-2xl font-bold text-accent">
+                      {(profile?.subscription_tokens || 0) + (profile?.purchased_tokens || 0)}
                     </div>
-                    <div className="text-sm text-muted-foreground">Paket Aktif</div>
+                    <div className="text-sm text-muted-foreground">Total Token</div>
+                    <div className="text-xs text-muted-foreground mt-1 capitalize">
+                      Paket: {profile?.subscription_plan || 'Free'}
+                    </div>
                   </div>
                 </div>
-
-                {/* Warning if quota is low */}
-                {profile && profile.monthly_generate_limit > 0 && 
-                 ((profile.current_month_generates / profile.monthly_generate_limit) >= 0.8) && (
-                  <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                    <div className="flex items-start gap-3">
-                      <Zap className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <div className="font-medium text-amber-900 dark:text-amber-100">
-                          Quota Hampir Habis
-                        </div>
-                        <div className="text-sm text-amber-800 dark:text-amber-200 mt-1">
-                          Anda telah menggunakan {Math.round((profile.current_month_generates / profile.monthly_generate_limit) * 100)}% 
-                          dari quota bulanan. Pertimbangkan untuk upgrade paket jika membutuhkan lebih banyak generate.
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             </CardContent>
           </Card>
