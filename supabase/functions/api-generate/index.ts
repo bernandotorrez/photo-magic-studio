@@ -62,7 +62,7 @@ serve(async (req) => {
     const userEmail = userData?.user?.email;
 
     // Parse request body
-    const { imageUrl, enhancement, classification, watermark, customPose, customFurniture } = await req.json();
+    const { imageUrl, enhancement, classification, watermark, customPose, customFurniture, customPrompt } = await req.json();
     
     if (!imageUrl) {
       return new Response(
@@ -195,6 +195,13 @@ serve(async (req) => {
       
       generatedPrompt = `Make the ${productType} from file 1 worn by the model from file 2. The model should use a natural professional pose like a fashion model to showcase the ${productType}. Keep the exact face, body, and appearance of the model from file 2. Preserve any text, logos, or branding that exists on the ${productType} from file 1 - do not remove or alter them. Use professional e-commerce photography style with clean background and studio lighting. The ${productType} should fit naturally on the model's body.`;
     }
+    
+    // Add custom prompt if provided (for beauty enhancements with custom colors)
+    if (customPrompt && customPrompt.trim()) {
+      generatedPrompt += ` Custom styling: ${customPrompt.trim()}`;
+      console.log('Added custom prompt:', customPrompt.trim());
+    }
+    
     generatedPrompt += watermarkInstruction;
 
     // Call KIE AI API

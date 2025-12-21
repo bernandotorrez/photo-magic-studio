@@ -19,7 +19,7 @@ INSERT INTO enhancement_prompts (
 (
   'food_angle_top_down',
   'Top-Down View (Flat Lay)',
-  'Transform this food photo into a professional top-down flat lay perspective. Position the camera directly above the food at 90 degrees. Arrange the food and props symmetrically and aesthetically. Perfect for social media and food blogging. Maintain natural lighting and shadows.',
+  'Transform this food photo into a professional top-down flat lay perspective. Position the camera directly above the food at 90 degrees. Arrange the food and props symmetrically and aesthetically. IMPORTANT: Center the food perfectly in the frame both vertically and horizontally. Perfect for social media and food blogging. Maintain natural lighting and shadows.',
   'Ubah sudut foto menjadi tampilan dari atas (flat lay) yang sempurna',
   'food',
   10,
@@ -29,7 +29,7 @@ INSERT INTO enhancement_prompts (
 (
   'food_angle_45_degree',
   '45-Degree Angle',
-  'Adjust this food photo to a professional 45-degree angle perspective. This is the most natural and appetizing angle for food photography. Show depth and dimension while highlighting the food''s best features. Maintain proper composition and focus.',
+  'Adjust this food photo to a professional 45-degree angle perspective. This is the most natural and appetizing angle for food photography. IMPORTANT: Center the food perfectly in the frame both vertically and horizontally. Show depth and dimension while highlighting the food''s best features. Maintain proper composition and focus.',
   'Sudut 45 derajat yang paling natural dan menggugah selera',
   'food',
   20,
@@ -39,7 +39,7 @@ INSERT INTO enhancement_prompts (
 (
   'food_angle_close_up',
   'Extreme Close-Up',
-  'Transform this into an extreme close-up food shot that highlights texture, details, and appetizing qualities. Focus on the most delicious part of the dish. Show moisture, steam, garnishes, and intricate details. Create a mouth-watering macro perspective.',
+  'Transform this into an extreme close-up food shot that highlights texture, details, and appetizing qualities. IMPORTANT: Center the main subject perfectly in the frame both vertically and horizontally. Focus on the most delicious part of the dish. Show moisture, steam, garnishes, and intricate details. Create a mouth-watering macro perspective.',
   'Close-up ekstrem yang menampilkan detail dan tekstur makanan',
   'food',
   30,
@@ -50,7 +50,7 @@ INSERT INTO enhancement_prompts (
 (
   'food_ingredient_overlay',
   'Tampilkan Bahan-Bahan',
-  'Add elegant ingredient overlays to this food photo. Display the main ingredients around the dish with clean labels and icons. Use modern, minimalist design with semi-transparent backgrounds. Show ingredient names in Indonesian. Create an infographic-style presentation that is informative yet visually appealing.',
+  'Add elegant ingredient overlays to this food photo. IMPORTANT: Center the main dish perfectly in the frame both vertically and horizontally. Display the main ingredients around the centered dish with clean labels and icons. Use modern, minimalist design with semi-transparent backgrounds. Show ingredient names in Indonesian. Create an infographic-style presentation that is informative yet visually appealing.',
   'Tambahkan overlay bahan-bahan masakan dengan desain modern',
   'food',
   40,
@@ -60,7 +60,7 @@ INSERT INTO enhancement_prompts (
 (
   'food_ingredient_floating',
   'Bahan Melayang (Floating)',
-  'Create a dynamic composition with fresh ingredients floating around the main dish. Show raw ingredients (vegetables, spices, herbs) suspended in mid-air with natural shadows. Create a sense of freshness and movement. Professional food advertising style.',
+  'Create a dynamic composition with fresh ingredients floating around the main dish. IMPORTANT: Center the main dish perfectly in the frame both vertically and horizontally. Show raw ingredients (vegetables, spices, herbs) suspended in mid-air around the centered dish with natural shadows. Create a sense of freshness and movement. Professional food advertising style.',
   'Bahan-bahan segar melayang di sekitar makanan utama',
   'food',
   50,
@@ -71,7 +71,7 @@ INSERT INTO enhancement_prompts (
 (
   'food_banner_promo',
   'Banner Promosi',
-  'Transform this food photo into a professional promotional banner. Add space for text overlay (top or bottom). Enhance colors to be vibrant and appetizing. Add subtle gradient backgrounds. Perfect for restaurant menus, social media ads, and promotional materials. Maintain focus on the food while creating advertising appeal.',
+  'Transform this food photo into a professional promotional banner. IMPORTANT: Center the food perfectly in the frame both vertically and horizontally. Add space for text overlay (top or bottom). Enhance colors to be vibrant and appetizing. Add subtle gradient backgrounds. Perfect for restaurant menus, social media ads, and promotional materials. Maintain focus on the centered food while creating advertising appeal.',
   'Buat banner promosi profesional untuk iklan dan media sosial',
   'food',
   60,
@@ -81,7 +81,7 @@ INSERT INTO enhancement_prompts (
 (
   'food_banner_menu',
   'Banner Menu Restoran',
-  'Create a restaurant menu-style banner from this food photo. Add elegant borders and frames. Include space for dish name, price, and description. Use warm, inviting colors. Professional restaurant menu photography style with proper lighting and composition.',
+  'Create a restaurant menu-style banner from this food photo. IMPORTANT: Center the food perfectly in the frame both vertically and horizontally. Add elegant borders and frames around the centered dish. Include space for dish name, price, and description. Use warm, inviting colors. Professional restaurant menu photography style with proper lighting and composition.',
   'Banner untuk menu restoran dengan frame elegan',
   'food',
   70,
@@ -91,7 +91,7 @@ INSERT INTO enhancement_prompts (
 (
   'food_banner_delivery',
   'Banner Delivery App',
-  'Optimize this food photo for food delivery app banners. Make it look fresh, hot, and irresistible. Add subtle steam effects if appropriate. Enhance colors to stand out on mobile screens. Square or horizontal format suitable for app interfaces.',
+  'Optimize this food photo for food delivery app banners. IMPORTANT: Center the food perfectly in the frame both vertically and horizontally. Make it look fresh, hot, and irresistible. Add subtle steam effects if appropriate. Enhance colors to stand out on mobile screens. Square or horizontal format suitable for app interfaces.',
   'Banner untuk aplikasi delivery dengan tampilan menggugah selera',
   'food',
   80,
@@ -102,7 +102,7 @@ INSERT INTO enhancement_prompts (
 (
   'food_plating_elegant',
   'Plating Mewah',
-  'Transform this dish into an elegant fine-dining presentation. Improve plating with artistic arrangement, garnishes, and sauce drizzles. Add microgreens, edible flowers, or elegant garnishes. Create a Michelin-star restaurant aesthetic. Professional food styling.',
+  'Transform this dish into an elegant fine-dining presentation. IMPORTANT: Center the dish perfectly in the frame both vertically and horizontally. Improve plating with artistic arrangement, garnishes, and sauce drizzles. Add microgreens, edible flowers, or elegant garnishes. Create a Michelin-star restaurant aesthetic. Professional food styling.',
   'Ubah menjadi presentasi fine dining yang mewah',
   'food',
   90,
@@ -112,7 +112,7 @@ INSERT INTO enhancement_prompts (
 (
   'food_plating_rustic',
   'Plating Rustic/Homey',
-  'Style this food photo with a warm, rustic, homey presentation. Use wooden boards, ceramic plates, and natural textures. Add casual garnishes like fresh herbs. Create a cozy, comfort food atmosphere. Perfect for home cooking and casual dining.',
+  'Style this food photo with a warm, rustic, homey presentation. IMPORTANT: Center the dish perfectly in the frame both vertically and horizontally. Use wooden boards, ceramic plates, and natural textures. Add casual garnishes like fresh herbs. Create a cozy, comfort food atmosphere. Perfect for home cooking and casual dining.',
   'Tampilan rustic dan homey yang hangat dan nyaman',
   'food',
   100,
@@ -122,7 +122,7 @@ INSERT INTO enhancement_prompts (
 (
   'food_add_props',
   'Tambah Props & Dekorasi',
-  'Enhance this food photo by adding complementary props and decorations. Include items like cutlery, napkins, herbs, spices, ingredients, or drinks. Arrange props to create a complete dining scene. Maintain focus on the main dish while adding context and atmosphere.',
+  'Enhance this food photo by adding complementary props and decorations. IMPORTANT: Center the main dish perfectly in the frame both vertically and horizontally. Include items like cutlery, napkins, herbs, spices, ingredients, or drinks around the centered dish. Arrange props to create a complete dining scene. Maintain focus on the main dish while adding context and atmosphere.',
   'Tambahkan properti dan dekorasi pelengkap yang sesuai',
   'food',
   110,
@@ -133,7 +133,7 @@ INSERT INTO enhancement_prompts (
 (
   'food_lighting_natural',
   'Natural Light',
-  'Enhance this food photo with beautiful natural lighting. Create soft, diffused daylight effect with gentle shadows. Highlight freshness and natural colors. Perfect for healthy food, breakfast, and fresh ingredients. Bright and airy atmosphere.',
+  'Enhance this food photo with beautiful natural lighting. IMPORTANT: Center the food perfectly in the frame both vertically and horizontally. Create soft, diffused daylight effect with gentle shadows. Highlight freshness and natural colors. Perfect for healthy food, breakfast, and fresh ingredients. Bright and airy atmosphere.',
   'Pencahayaan alami yang lembut dan cerah',
   'food',
   120,

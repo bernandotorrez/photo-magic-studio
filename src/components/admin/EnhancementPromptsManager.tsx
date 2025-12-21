@@ -22,6 +22,7 @@ interface EnhancementPrompt {
   category: string;
   sort_order: number;
   applicable_classifications: string[];
+  supports_custom_prompt: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -44,6 +45,7 @@ export default function EnhancementPromptsManager() {
     category: 'general',
     sort_order: 0,
     applicable_classifications: [],
+    supports_custom_prompt: false,
   });
 
   useEffect(() => {
@@ -78,6 +80,7 @@ export default function EnhancementPromptsManager() {
       category: 'general',
       sort_order: prompts.length,
       applicable_classifications: [],
+      supports_custom_prompt: false,
     });
   };
 
@@ -222,6 +225,11 @@ export default function EnhancementPromptsManager() {
                   <SelectItem value="exterior">Exterior</SelectItem>
                   <SelectItem value="fashion">Fashion</SelectItem>
                   <SelectItem value="furniture">Furniture</SelectItem>
+                  <SelectItem value="food">Food</SelectItem>
+                  <SelectItem value="portrait">Portrait</SelectItem>
+                  <SelectItem value="hair_style_male">Hair Style Male</SelectItem>
+                  <SelectItem value="hair_style_female">Hair Style Female</SelectItem>
+                  <SelectItem value="makeup">Makeup</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(parseInt(value))}>
@@ -305,6 +313,11 @@ export default function EnhancementPromptsManager() {
                     <SelectItem value="exterior">Exterior</SelectItem>
                     <SelectItem value="fashion">Fashion</SelectItem>
                     <SelectItem value="furniture">Furniture</SelectItem>
+                    <SelectItem value="food">Food</SelectItem>
+                    <SelectItem value="portrait">Portrait</SelectItem>
+                    <SelectItem value="hair_style_male">Hair Style Male</SelectItem>
+                    <SelectItem value="hair_style_female">Hair Style Female</SelectItem>
+                    <SelectItem value="makeup">Makeup</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -329,6 +342,34 @@ export default function EnhancementPromptsManager() {
                   />
                 </div>
               </div>
+            </div>
+
+            <div className="space-y-2 p-4 bg-muted rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="supports_custom_prompt" className="text-base">
+                    Supports Custom Prompt
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Enable this if the enhancement supports custom user input (e.g., custom colors for makeup)
+                  </p>
+                </div>
+                <Switch
+                  id="supports_custom_prompt"
+                  checked={formData.supports_custom_prompt || false}
+                  onCheckedChange={(checked) => setFormData({ ...formData, supports_custom_prompt: checked })}
+                />
+              </div>
+              {formData.supports_custom_prompt && (
+                <div className="mt-3 p-3 bg-background rounded border border-border">
+                  <p className="text-xs text-muted-foreground">
+                    💡 <strong>Tip:</strong> Use <code className="bg-muted px-1 py-0.5 rounded text-xs">{'{{customPrompt}}'}</code> placeholder in your prompt template where you want the custom input to be inserted.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    <strong>Example:</strong> "Apply lipstick with custom color: {'{{customPrompt}}'}"
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2">
@@ -357,6 +398,7 @@ export default function EnhancementPromptsManager() {
                   <TableHead className="w-[150px]">Type</TableHead>
                   <TableHead className="w-[120px]">Category</TableHead>
                   <TableHead>Prompt Template</TableHead>
+                  <TableHead className="w-[100px]">Custom</TableHead>
                   <TableHead className="w-[80px]">Order</TableHead>
                   <TableHead className="w-[120px] text-right">Actions</TableHead>
                 </TableRow>
@@ -364,7 +406,7 @@ export default function EnhancementPromptsManager() {
               <TableBody>
                 {paginatedPrompts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       {searchQuery || categoryFilter !== 'all' 
                         ? 'No prompts found matching your filters'
                         : 'No enhancement prompts yet. Click "Add New Prompt" to create one.'}
@@ -406,6 +448,15 @@ export default function EnhancementPromptsManager() {
                             {prompt.prompt_template}
                           </p>
                         </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {prompt.supports_custom_prompt ? (
+                          <Badge variant="default" className="text-xs">
+                            ✓ Yes
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">No</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-center">
                         <span className="text-sm text-muted-foreground">{prompt.sort_order}</span>
