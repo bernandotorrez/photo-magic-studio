@@ -104,15 +104,21 @@ serve(async (req) => {
     // Get system prompt based on classification/category
     let systemPrompt = '';
     if (classification) {
+      // Try to get system prompt from image_categories table
+      // classification could be category_name or category_code
       const { data: categoryData } = await supabase
         .from('image_categories')
-        .select('system_prompt')
-        .eq('category_name', classification)
+        .select('system_prompt, category_name, category_code')
+        .or(`category_name.eq.${classification},category_code.eq.${classification}`)
+        .eq('is_active', true)
         .maybeSingle();
       
       if (categoryData?.system_prompt) {
         systemPrompt = categoryData.system_prompt;
-        console.log('Using system prompt for category:', classification);
+        console.log('✅ Using system prompt for category:', categoryData.category_name || classification);
+        console.log('System prompt preview:', systemPrompt.substring(0, 100) + '...');
+      } else {
+        console.log('⚠️ No system prompt found for classification:', classification);
       }
     }
     

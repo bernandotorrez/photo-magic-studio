@@ -107,9 +107,17 @@ export default function MyPayments() {
   };
 
   const getPaymentType = (payment: Payment) => {
+    // Check token_type first
     if (payment.token_type === 'subscription' && payment.subscription_plan) {
-      return `Paket ${payment.subscription_plan.replace('_', ' ').toUpperCase()}`;
+      return `Paket ${payment.subscription_plan.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`;
     }
+    
+    // Fallback: Check if subscription_plan exists (for old data without token_type)
+    if (payment.subscription_plan && payment.subscription_plan !== 'free') {
+      return `Paket ${payment.subscription_plan.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`;
+    }
+    
+    // Default to Top-Up Token
     return 'Top-Up Token';
   };
 
