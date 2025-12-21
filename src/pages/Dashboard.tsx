@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Logo } from '@/components/Logo';
 import { 
   Sparkles, 
   Upload, 
@@ -64,7 +65,7 @@ export default function Dashboard() {
       sessionStorage.removeItem('emailVerified');
       toast({
         title: '✅ Email Berhasil Diverifikasi!',
-        description: 'Selamat datang di EnhanceAI. Akun Anda sudah aktif.',
+        description: 'Selamat datang di PixelNova AI. Akun Anda sudah aktif.',
         duration: 5000,
       });
     }
@@ -143,12 +144,9 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-lg sticky top-0 z-50">
-        <div className="container mx-auto px-3 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg gradient-primary flex items-center justify-center">
-              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-foreground" />
-            </div>
-            <span className="font-bold text-base sm:text-lg">EnhanceAI</span>
+        <div className="container mx-auto px-3 sm:px-4 h-20 sm:h-24 flex items-center justify-between gap-2">
+          <div className="flex items-center">
+            <Logo size="lg" />
           </div>
           
           <div className="flex items-center gap-2 sm:gap-4">

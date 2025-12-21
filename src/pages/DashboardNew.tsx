@@ -66,7 +66,7 @@ export default function DashboardNew() {
       sessionStorage.removeItem('emailVerified');
       toast({
         title: '✅ Email Berhasil Diverifikasi!',
-        description: 'Selamat datang di EnhanceAI. Akun Anda sudah aktif.',
+        description: 'Selamat datang di PixelNova AI. Akun Anda sudah aktif.',
         duration: 5000,
       });
     }

@@ -29,5 +29,5 @@ double_confirm_changes = true
 enable_confirmations = true
 
 [auth.email.template.confirmation]
-subject = "Confirm your email - EnhanceAI"
+subject = "Confirm your email - PixelNova AI"
 content_path = "./supabase/templates/confirmation.html"

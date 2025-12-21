@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Logo } from '@/components/Logo';
 import { 
   Sparkles, 
   Wand2, 
@@ -111,12 +112,9 @@ export default function Index() {
     <div className="min-h-screen bg-background">
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
-        <div className="container mx-auto px-3 sm:px-4 h-14 sm:h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-1.5 sm:gap-2">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg gradient-primary flex items-center justify-center">
-              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-foreground" />
-            </div>
-            <span className="font-bold text-base sm:text-lg">EnhanceAI</span>
+        <div className="container mx-auto px-3 sm:px-4 h-20 sm:h-24 flex items-center justify-between">
+          <Link to="/" className="flex items-center">
+            <Logo size="lg" className="scale-100 sm:scale-110 md:scale-125" />
           </Link>
           
           <div className="flex items-center gap-2 sm:gap-4">
@@ -156,16 +154,13 @@ export default function Index() {
             </div>
             
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-primary-foreground mb-4 sm:mb-6 leading-tight animate-slide-up-delay-1">
-              Tingkatkan Kualitas
+              PixelNova AI
               <br />
-              <span className="gradient-text">Foto Produk</span> Anda
+              <span className="gradient-text">Upgrade Every Pixel</span>
             </h1>
             
             <p className="text-sm sm:text-base md:text-lg lg:text-xl text-primary-foreground/70 mb-6 sm:mb-8 max-w-2xl mx-auto animate-slide-up-delay-2 px-2">
-              Platform AI yang mengubah foto produk biasa menjadi luar biasa. 
-              Tambahkan model, perbaiki background, dan banyak lagi dengan satu klik.
-              <br />
-              <span className="text-accent font-medium">Bisa top up token tambahan kapan saja!</span>
+              Enhance images instantly with AI-powered precision.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center animate-slide-up-delay-3 px-2">
@@ -358,7 +353,7 @@ export default function Index() {
                 Siap Meningkatkan Foto Produk Anda?
               </h2>
               <p className="text-primary-foreground/70 text-sm sm:text-base md:text-lg mb-6 sm:mb-8 max-w-2xl mx-auto px-2">
-                Bergabung dengan ribuan seller yang sudah menggunakan EnhanceAI untuk meningkatkan penjualan mereka.
+                Bergabung dengan ribuan seller yang sudah menggunakan PixelNova AI untuk meningkatkan penjualan mereka.
               </p>
               <Link to="/auth">
                 <Button variant="hero" size="lg" className="w-full sm:w-auto text-sm sm:text-base">
@@ -375,15 +370,10 @@ export default function Index() {
       <footer className="py-6 sm:py-8 px-3 sm:px-4 border-t border-border/50">
         <div className="container mx-auto">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-md gradient-primary flex items-center justify-center">
-                <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary-foreground" />
-              </div>
-              <span className="font-semibold text-sm sm:text-base">EnhanceAI</span>
-            </div>
+            <Logo size="sm" />
             <div className="flex flex-col items-center gap-1">
               <p className="text-xs sm:text-sm text-muted-foreground text-center">
-                © 2025 EnhanceAI. All rights reserved.
+                © 2025 PixelNova AI. All rights reserved.
               </p>
               <p className="text-xs sm:text-sm text-muted-foreground text-center">
                 Butuh Bantuan? Hubungi WhatsApp{' '}

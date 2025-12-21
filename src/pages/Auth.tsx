@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { isDisposableEmail, isValidEmailProvider } from '@/lib/disposable-emails';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Logo } from '@/components/Logo';
 
 const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || '';
 
@@ -412,11 +413,8 @@ export default function Auth() {
         <Card className="border-border/50 shadow-xl">
           <CardHeader className="text-center pb-2">
             <div className="flex justify-center mb-4">
-              <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center shadow-glow">
-                <Sparkles className="w-6 h-6 text-primary-foreground" />
-              </div>
+              <Logo size="xl" />
             </div>
-            <CardTitle className="text-2xl font-bold">EnhanceAI</CardTitle>
             <CardDescription>
               Platform AI untuk mempercantik foto produk Anda
             </CardDescription>

@@ -36,11 +36,11 @@ export function AdminSettings() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="platform-name">Platform Name</Label>
-              <Input id="platform-name" defaultValue="EnhanceAI" />
+              <Input id="platform-name" defaultValue="PixelNova AI" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="support-email">Support Email</Label>
-              <Input id="support-email" type="email" defaultValue="support@enhanceai.com" />
+              <Input id="support-email" type="email" defaultValue="support@pixelnovaai.com" />
             </div>
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">

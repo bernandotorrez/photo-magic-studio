@@ -39,9 +39,9 @@ export const generateInvoicePDF = async (payment: Payment, customerName: string)
       <!-- Header -->
       <div style="display: table; width: 100%; margin-bottom: 40px; padding-bottom: 30px; border-bottom: 2px solid #e5e7eb;">
         <div style="display: table-cell; width: 50%; vertical-align: top;">
-          <h1 style="color: #2563eb; font-size: 32px; font-weight: 700; margin: 0 0 8px 0;">Photo Magic</h1>
-          <p style="color: #6b7280; font-size: 14px; margin: 4px 0;">AI Image Enhancement Platform</p>
-          <p style="color: #6b7280; font-size: 14px; margin: 4px 0;">support@photomagic.com</p>
+          <h1 style="color: #2563eb; font-size: 32px; font-weight: 700; margin: 0 0 12px 0;">PixelNova AI</h1>
+          <p style="color: #6b7280; font-size: 14px; margin: 4px 0;">Enhance images instantly with AI-powered precision</p>
+          <p style="color: #6b7280; font-size: 14px; margin: 4px 0;">Support: Whatsapp (+62 896-8761-0639)</p>
         </div>
         <div style="display: table-cell; width: 50%; text-align: right; vertical-align: top;">
           <h2 style="font-size: 24px; font-weight: 700; margin: 0 0 4px 0;">Invoice ${invoiceNo}</h2>
@@ -54,9 +54,9 @@ export const generateInvoicePDF = async (payment: Payment, customerName: string)
         <div style="display: table-cell; width: 50%; vertical-align: top;">
           <h3 style="font-size: 16px; font-weight: 600; margin: 0 0 12px 0; color: #374151;">From:</h3>
           <p style="color: #6b7280; font-size: 14px; line-height: 1.8; margin: 0;">
-            <strong>Photo Magic</strong><br>
-            AI Image Enhancement Platform<br>
-            support@photomagic.com
+            <strong>PixelNova AI</strong><br>
+            Enhance images instantly with AI-powered precision<br>
+            support@pixelnovaai.com
           </p>
         </div>
         <div style="display: table-cell; width: 50%; vertical-align: top;">
@@ -130,7 +130,7 @@ export const generateInvoicePDF = async (payment: Payment, customerName: string)
       
       <!-- Footer -->
       <div style="margin-top: 60px; padding-top: 30px; border-top: 2px solid #e5e7eb; text-align: center;">
-        <p style="color: #6b7280; font-size: 14px; line-height: 1.8; margin: 4px 0;">Thank you for using Photo Magic!</p>
+        <p style="color: #6b7280; font-size: 14px; line-height: 1.8; margin: 4px 0;">Thank you for using PixelNova AI!</p>
         <p style="margin-top: 12px; font-weight: 600; color: #374151; font-size: 14px;">Payment Reference: ${invoiceNo}</p>
         <p style="margin-top: 20px; font-size: 12px; color: #6b7280; line-height: 1.8;">
           Metode Pembayaran: Transfer Bank<br>

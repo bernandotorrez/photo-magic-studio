@@ -205,7 +205,7 @@ export function ApiKeyManager() {
               API Keys
             </CardTitle>
             <CardDescription>
-              Kelola API keys untuk mengakses EnhanceAI via API
+              Kelola API keys untuk mengakses PixelNova AI via API
             </CardDescription>
           </div>
           
@@ -315,7 +315,7 @@ export function ApiKeyManager() {
             <p className="text-sm text-muted-foreground">
               {isFreeUser 
                 ? 'Upgrade ke paket berbayar untuk membuat API keys' 
-                : 'Buat API key untuk mengakses EnhanceAI via API'
+                : 'Buat API key untuk mengakses PixelNova AI via API'
               }
             </p>
           </div>

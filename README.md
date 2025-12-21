@@ -1,4 +1,4 @@
-# Photo Magic Studio
+# PixelNova AI
 
 AI-powered image enhancement platform for product photography.
 

@@ -7,6 +7,7 @@ import { UsageStats } from '@/components/dashboard/UsageStats';
 import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Logo } from '@/components/Logo';
 
 interface LayoutProps {
   children: ReactNode;
@@ -122,7 +123,7 @@ export function Layout({ children }: LayoutProps) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden w-full">
         {/* Top Bar */}
-        <header className="h-14 sm:h-16 border-b border-border/50 bg-card/50 backdrop-blur-lg flex items-center justify-between px-3 sm:px-6 gap-2">
+        <header className="h-20 sm:h-24 border-b border-border/50 bg-card/50 backdrop-blur-lg flex items-center justify-between px-3 sm:px-6 gap-2">
           {/* Mobile Menu Button */}
           <div className="flex items-center gap-2 sm:gap-3">
             <Button
@@ -144,11 +145,8 @@ export function Layout({ children }: LayoutProps) {
             </div>
             
             {/* Mobile: Show app name */}
-            <div className="sm:hidden flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg gradient-primary flex items-center justify-center">
-                <span className="text-primary-foreground text-xs font-bold">PM</span>
-              </div>
-              <span className="font-bold text-sm">Photo Magic</span>
+            <div className="sm:hidden flex items-center">
+              <Logo size="md" />
             </div>
           </div>
           
