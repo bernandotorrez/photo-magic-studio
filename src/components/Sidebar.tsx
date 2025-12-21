@@ -114,8 +114,9 @@ export function Sidebar({ isAdmin = false, onSignOut, onNavigate }: SidebarProps
   };
 
   const handleNavigation = (path: string) => {
+    // Navigate immediately
     navigate(path);
-    // Close mobile menu after navigation
+    // Close mobile menu after navigation starts
     if (onNavigate) {
       onNavigate();
     }
