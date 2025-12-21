@@ -15,6 +15,7 @@ import InteriorDesign from "./pages/InteriorDesign";
 import ExteriorDesign from "./pages/ExteriorDesign";
 import FoodEnhancement from "./pages/FoodEnhancement";
 import ComingSoon from "./pages/ComingSoon";
+import HistoryPage from "./pages/History";
 import Admin from "./pages/Admin";
 import ManageUsers from "./pages/ManageUsers";
 import Settings from "./pages/Settings";
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="/exterior-design" element={<ExteriorDesign />} />
             <Route path="/food-enhancement" element={<FoodEnhancement />} />
             <Route path="/coming-soon" element={<ComingSoon />} />
+            <Route path="/history" element={<HistoryPage />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/users" element={<ManageUsers />} />
             <Route path="/settings" element={<Settings />} />
