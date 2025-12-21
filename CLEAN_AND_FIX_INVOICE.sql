@@ -24,7 +24,7 @@ DROP SEQUENCE IF EXISTS payments_invoice_seq CASCADE;
 ALTER TABLE payments ALTER COLUMN invoice_no DROP DEFAULT;
 ALTER TABLE payments ALTER COLUMN invoice_no DROP NOT NULL;
 
--- Step 5: Create NEW simple function
+-- Step 5: Create NEW simple function with advisory lock
 CREATE OR REPLACE FUNCTION generate_invoice_no()
 RETURNS TEXT AS $$
 DECLARE
@@ -33,11 +33,20 @@ DECLARE
   last_sequence INTEGER;
   next_sequence INTEGER;
   new_invoice TEXT;
+  lock_key BIGINT;
 BEGIN
   -- Get current date in DDMMYYYY format
   current_date_str := TO_CHAR(CURRENT_DATE, 'DDMMYYYY');
   
-  -- Get MAX invoice for today
+  -- Create lock key from current date (unique per day)
+  -- This ensures only one transaction can generate invoice at a time per day
+  lock_key := CAST(current_date_str AS BIGINT);
+  
+  -- Acquire advisory lock (will wait if another transaction has the lock)
+  -- Lock is automatically released at end of transaction
+  PERFORM pg_advisory_xact_lock(lock_key);
+  
+  -- Get MAX invoice for today (now safe from race condition)
   SELECT MAX(invoice_no)
   INTO max_invoice
   FROM payments
