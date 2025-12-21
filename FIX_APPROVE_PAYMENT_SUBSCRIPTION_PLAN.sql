@@ -1,9 +1,11 @@
 -- =====================================================
--- UPDATE PAYMENT APPROVAL TO USE SUBSCRIPTION TIERS
+-- FIX: APPROVE PAYMENT SUBSCRIPTION PLAN TYPE ERROR
 -- =====================================================
--- Run this after running the main migration
+-- Jalankan SQL ini di Supabase SQL Editor untuk fix error:
+-- "column subscription_plan is of type subscription_plan but expression is of type text"
+-- =====================================================
 
--- Update process_approved_payment to also update subscription_plan
+-- Update process_approved_payment function with proper type casting
 CREATE OR REPLACE FUNCTION process_approved_payment(payment_id UUID)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
@@ -48,7 +50,7 @@ BEGIN
     -- Add to subscription_tokens with 30 days expiry
     PERFORM add_subscription_tokens(v_user_id, v_total_tokens, 30);
     
-    -- Update subscription_plan if provided
+    -- Update subscription_plan if provided (with proper type casting)
     IF v_subscription_plan IS NOT NULL THEN
       UPDATE profiles
       SET subscription_plan = v_subscription_plan::subscription_plan
@@ -83,22 +85,10 @@ GRANT EXECUTE ON FUNCTION process_approved_payment TO authenticated, service_rol
 -- VERIFICATION
 -- =====================================================
 
--- Test: Check if function exists
+SELECT 'Function updated successfully!' as status;
+
+-- Test query to check function
 SELECT proname, prosrc 
 FROM pg_proc 
 WHERE proname = 'process_approved_payment';
 
--- =====================================================
--- NOTES
--- =====================================================
--- This function now:
--- 1. Reads subscription_plan from payments table
--- 2. Updates user's subscription_plan when approving subscription payment
--- 3. Adds tokens based on token_type (subscription or purchased)
--- 4. Includes bonus tokens in total
---
--- Usage in admin panel:
--- When admin approves payment, this function automatically:
--- - Adds tokens to user
--- - Updates subscription plan (for subscription payments)
--- - Sets expiry date (for subscription tokens)

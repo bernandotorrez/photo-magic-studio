@@ -1,7 +1,7 @@
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface Payment {
   id: string;
@@ -22,153 +22,149 @@ interface Payment {
 }
 
 export const generateInvoicePDF = async (payment: Payment, customerName: string) => {
-  const doc = new jsPDF();
+  const invoiceNo = payment.invoice_no || `INV-${payment.id.substring(0, 8).toUpperCase()}`;
+  const invoiceDateFull = format(new Date(payment.created_at), 'dd/MM/yyyy (O)', { locale: idLocale });
   
-  // Company Info
-  doc.setFontSize(20);
-  doc.setFont('helvetica', 'bold');
-  doc.text('PHOTO MAGIC STUDIO', 105, 20, { align: 'center' });
+  // Create temporary container
+  const container = document.createElement('div');
+  container.style.position = 'absolute';
+  container.style.left = '-9999px';
+  container.style.width = '800px';
+  container.style.background = 'white';
+  container.style.padding = '60px';
   
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text('AI-Powered Photo Enhancement Platform', 105, 27, { align: 'center' });
-  doc.text('www.photomagicstudio.com', 105, 32, { align: 'center' });
+  // Generate HTML invoice
+  container.innerHTML = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: white;">
+      <!-- Header -->
+      <div style="display: table; width: 100%; margin-bottom: 40px; padding-bottom: 30px; border-bottom: 2px solid #e5e7eb;">
+        <div style="display: table-cell; width: 50%; vertical-align: top;">
+          <h1 style="color: #2563eb; font-size: 32px; font-weight: 700; margin: 0 0 8px 0;">Photo Magic</h1>
+          <p style="color: #6b7280; font-size: 14px; margin: 4px 0;">AI Image Enhancement Platform</p>
+          <p style="color: #6b7280; font-size: 14px; margin: 4px 0;">support@photomagic.com</p>
+        </div>
+        <div style="display: table-cell; width: 50%; text-align: right; vertical-align: top;">
+          <h2 style="font-size: 24px; font-weight: 700; margin: 0 0 4px 0;">Invoice ${invoiceNo}</h2>
+          <p style="color: #6b7280; font-size: 14px; margin: 4px 0;">${invoiceDateFull}</p>
+        </div>
+      </div>
+      
+      <!-- Invoice Details -->
+      <div style="display: table; width: 100%; margin-bottom: 40px;">
+        <div style="display: table-cell; width: 50%; vertical-align: top;">
+          <h3 style="font-size: 16px; font-weight: 600; margin: 0 0 12px 0; color: #374151;">From:</h3>
+          <p style="color: #6b7280; font-size: 14px; line-height: 1.8; margin: 0;">
+            <strong>Photo Magic</strong><br>
+            AI Image Enhancement Platform<br>
+            support@photomagic.com
+          </p>
+        </div>
+        <div style="display: table-cell; width: 50%; vertical-align: top;">
+          <h3 style="font-size: 16px; font-weight: 600; margin: 0 0 12px 0; color: #374151;">To:</h3>
+          <p style="color: #6b7280; font-size: 14px; line-height: 1.8; margin: 0;">
+            <strong>${customerName}</strong><br>
+            ${payment.user_email}
+          </p>
+        </div>
+      </div>
+      
+      <!-- Invoice Table -->
+      <table style="width: 100%; margin-bottom: 30px; border-collapse: collapse;">
+        <thead>
+          <tr style="background: #f9fafb;">
+            <th style="padding: 12px; text-align: left; font-size: 13px; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Description</th>
+            <th style="padding: 12px; text-align: left; font-size: 13px; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Tokens</th>
+            <th style="padding: 12px; text-align: left; font-size: 13px; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Amount</th>
+            <th style="padding: 12px; text-align: left; font-size: 13px; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding: 16px 12px; font-size: 14px; color: #6b7280; border-bottom: 1px solid #f3f4f6;">
+              <strong>${
+                // Check token_type first
+                payment.token_type === 'subscription' && payment.subscription_plan 
+                  ? `Paket ${payment.subscription_plan.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}` 
+                  // Fallback: Check subscription_plan exists (for old data)
+                  : payment.subscription_plan && payment.subscription_plan !== 'free'
+                    ? `Paket ${payment.subscription_plan.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`
+                    // Check token_type for purchased
+                    : payment.token_type === 'purchased' 
+                      ? 'Top-Up Token' 
+                      : 'Top-Up Token'
+              }</strong>
+              ${payment.bonus_tokens > 0 ? `<br><small style="color: #10b981;">+ ${payment.bonus_tokens} Bonus Tokens</small>` : ''}
+            </td>
+            <td style="padding: 16px 12px; font-size: 14px; color: #6b7280; border-bottom: 1px solid #f3f4f6;">${payment.tokens_purchased} tokens</td>
+            <td style="padding: 16px 12px; font-size: 14px; color: #6b7280; border-bottom: 1px solid #f3f4f6;">Rp ${payment.amount.toLocaleString('id-ID')}</td>
+            <td style="padding: 16px 12px; font-size: 14px; color: #10b981; font-weight: 600; border-bottom: 1px solid #f3f4f6;">
+              LUNAS
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      
+      ${payment.unique_code > 0 ? `
+      <!-- Unique Code Info -->
+      <div style="background: #fef3c7; border: 1px solid #fbbf24; padding: 12px; border-radius: 6px; margin-top: 20px; font-size: 13px; color: #92400e;">
+        <strong>Kode Unik:</strong> Rp ${payment.unique_code.toLocaleString('id-ID')}<br>
+        <small>Kode unik ditambahkan untuk memudahkan verifikasi pembayaran</small>
+      </div>
+      ` : ''}
+      
+      <!-- Totals -->
+      <div style="margin-left: auto; width: 300px; margin-top: 20px;">
+        <div style="display: table; width: 100%; padding: 12px 0; font-size: 14px; color: #6b7280; border-bottom: 1px solid #e5e7eb;">
+          <span style="display: table-cell; text-align: left;">Subtotal:</span>
+          <span style="display: table-cell; text-align: right;">Rp ${payment.amount.toLocaleString('id-ID')}</span>
+        </div>
+        <div style="display: table; width: 100%; padding: 12px 0; font-size: 14px; color: #6b7280; border-bottom: 1px solid #e5e7eb;">
+          <span style="display: table-cell; text-align: left;">Kode Unik:</span>
+          <span style="display: table-cell; text-align: right;">Rp ${payment.unique_code.toLocaleString('id-ID')}</span>
+        </div>
+        <div style="display: table; width: 100%; padding: 16px 0 12px 0; font-size: 18px; font-weight: 700; color: #111827; border-top: 2px solid #e5e7eb;">
+          <span style="display: table-cell; text-align: left;">Total:</span>
+          <span style="display: table-cell; text-align: right;">Rp ${payment.amount_with_code.toLocaleString('id-ID')}</span>
+        </div>
+      </div>
+      
+      <!-- Footer -->
+      <div style="margin-top: 60px; padding-top: 30px; border-top: 2px solid #e5e7eb; text-align: center;">
+        <p style="color: #6b7280; font-size: 14px; line-height: 1.8; margin: 4px 0;">Thank you for using Photo Magic!</p>
+        <p style="margin-top: 12px; font-weight: 600; color: #374151; font-size: 14px;">Payment Reference: ${invoiceNo}</p>
+        <p style="margin-top: 20px; font-size: 12px; color: #6b7280; line-height: 1.8;">
+          Metode Pembayaran: ${payment.payment_method || 'Transfer Bank'}<br>
+          Tanggal Pembayaran: ${format(new Date(payment.verified_at || payment.created_at), 'dd MMMM yyyy, HH:mm', { locale: idLocale })}
+        </p>
+      </div>
+    </div>
+  `;
   
-  // Line separator
-  doc.setLineWidth(0.5);
-  doc.line(20, 38, 190, 38);
+  document.body.appendChild(container);
   
-  // Invoice Title
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text('INVOICE', 20, 48);
-  
-  // Invoice Details
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  const invoiceNumber = payment.invoice_no || `INV-${payment.id.substring(0, 8).toUpperCase()}`;
-  const invoiceDate = format(new Date(payment.created_at), 'dd MMMM yyyy', { locale: idLocale });
-  const verifiedDate = payment.verified_at 
-    ? format(new Date(payment.verified_at), 'dd MMMM yyyy', { locale: idLocale })
-    : '-';
-  
-  doc.text(`No. Invoice: ${invoiceNumber}`, 20, 56);
-  doc.text(`Tanggal: ${invoiceDate}`, 20, 62);
-  doc.text(`Status: LUNAS`, 20, 68);
-  doc.text(`Tanggal Verifikasi: ${verifiedDate}`, 20, 74);
-  
-  // Customer Info
-  doc.setFont('helvetica', 'bold');
-  doc.text('KEPADA:', 120, 56);
-  doc.setFont('helvetica', 'normal');
-  doc.text(customerName, 120, 62);
-  doc.text(payment.user_email, 120, 68);
-  
-  // Payment Type
-  let paymentType = 'Top-Up Token';
-  if (payment.token_type === 'subscription' && payment.subscription_plan) {
-    paymentType = `Paket ${payment.subscription_plan.replace('_', ' ').toUpperCase()}`;
+  try {
+    // Convert HTML to canvas
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff'
+    });
+    
+    // Create PDF
+    const imgWidth = 210; // A4 width in mm
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const imgData = canvas.toDataURL('image/png');
+    
+    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+    
+    // Download PDF
+    pdf.save(`Invoice-${invoiceNo}.pdf`);
+    
+  } finally {
+    // Clean up
+    document.body.removeChild(container);
   }
-  
-  // Items Table
-  const tableData = [
-    [
-      '1',
-      paymentType,
-      `${payment.tokens_purchased} token`,
-      `Rp ${payment.price_per_token.toLocaleString('id-ID')}`,
-      `Rp ${payment.amount.toLocaleString('id-ID')}`
-    ]
-  ];
-  
-  // Add bonus tokens row if applicable
-  if (payment.bonus_tokens > 0) {
-    tableData.push([
-      '2',
-      'Bonus Token',
-      `${payment.bonus_tokens} token`,
-      'Rp 0',
-      'Rp 0'
-    ]);
-  }
-  
-  autoTable(doc, {
-    startY: 85,
-    head: [['No', 'Deskripsi', 'Jumlah', 'Harga Satuan', 'Total']],
-    body: tableData,
-    theme: 'grid',
-    headStyles: {
-      fillColor: [59, 130, 246],
-      textColor: 255,
-      fontStyle: 'bold',
-      halign: 'center'
-    },
-    columnStyles: {
-      0: { halign: 'center', cellWidth: 15 },
-      1: { halign: 'left', cellWidth: 70 },
-      2: { halign: 'center', cellWidth: 30 },
-      3: { halign: 'right', cellWidth: 35 },
-      4: { halign: 'right', cellWidth: 35 }
-    },
-    styles: {
-      fontSize: 10,
-      cellPadding: 5
-    }
-  });
-  
-  // Get final Y position after table
-  const finalY = (doc as any).lastAutoTable.finalY || 120;
-  
-  // Summary Section
-  const summaryY = finalY + 10;
-  doc.setFont('helvetica', 'normal');
-  doc.text('Subtotal:', 130, summaryY);
-  doc.text(`Rp ${payment.amount.toLocaleString('id-ID')}`, 190, summaryY, { align: 'right' });
-  
-  doc.text('Kode Unik:', 130, summaryY + 6);
-  doc.text(`Rp ${payment.unique_code.toLocaleString('id-ID')}`, 190, summaryY + 6, { align: 'right' });
-  
-  // Total line
-  doc.setLineWidth(0.3);
-  doc.line(130, summaryY + 10, 190, summaryY + 10);
-  
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
-  doc.text('TOTAL:', 130, summaryY + 16);
-  doc.text(`Rp ${payment.amount_with_code.toLocaleString('id-ID')}`, 190, summaryY + 16, { align: 'right' });
-  
-  // Payment Info
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text('INFORMASI PEMBAYARAN', 20, summaryY + 30);
-  
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Metode: ${payment.payment_method}`, 20, summaryY + 37);
-  doc.text(`Status: LUNAS`, 20, summaryY + 43);
-  
-  // Total Tokens
-  const totalTokens = payment.tokens_purchased + payment.bonus_tokens;
-  doc.setFont('helvetica', 'bold');
-  doc.text('TOTAL TOKEN DITERIMA', 20, summaryY + 55);
-  doc.setFontSize(14);
-  doc.setTextColor(34, 197, 94); // Green color
-  doc.text(`${totalTokens} TOKEN`, 20, summaryY + 62);
-  
-  if (payment.bonus_tokens > 0) {
-    doc.setFontSize(9);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`(${payment.tokens_purchased} token + ${payment.bonus_tokens} bonus)`, 20, summaryY + 68);
-  }
-  
-  // Footer
-  doc.setTextColor(0, 0, 0);
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'italic');
-  const footerY = 270;
-  doc.text('Terima kasih atas kepercayaan Anda menggunakan Photo Magic Studio', 105, footerY, { align: 'center' });
-  doc.text('Invoice ini dibuat secara otomatis dan sah tanpa tanda tangan', 105, footerY + 5, { align: 'center' });
-  
-  // Save PDF
-  const fileName = `Invoice_${invoiceNumber}_${format(new Date(), 'yyyyMMdd')}.pdf`;
-  doc.save(fileName);
 };

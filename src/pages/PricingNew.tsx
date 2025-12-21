@@ -224,6 +224,7 @@ export default function PricingNew() {
           account_number: '2040239483',
           transfer_date: new Date().toISOString(),
           token_type: 'subscription',
+          subscription_plan: selectedPlan.tier_id, // Add subscription_plan field
         });
 
       if (error) throw error;
