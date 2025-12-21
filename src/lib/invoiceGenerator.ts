@@ -133,7 +133,7 @@ export const generateInvoicePDF = async (payment: Payment, customerName: string)
         <p style="color: #6b7280; font-size: 14px; line-height: 1.8; margin: 4px 0;">Thank you for using Photo Magic!</p>
         <p style="margin-top: 12px; font-weight: 600; color: #374151; font-size: 14px;">Payment Reference: ${invoiceNo}</p>
         <p style="margin-top: 20px; font-size: 12px; color: #6b7280; line-height: 1.8;">
-          Metode Pembayaran: ${payment.payment_method || 'Transfer Bank'}<br>
+          Metode Pembayaran: Transfer Bank<br>
           Tanggal Pembayaran: ${format(new Date(payment.verified_at || payment.created_at), 'dd MMMM yyyy, HH:mm', { locale: idLocale })}
         </p>
       </div>

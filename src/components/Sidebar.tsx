@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Sparkles, 
   LayoutDashboard,
-  ImagePlus,
   Users,
   Settings,
   ChevronLeft,
@@ -36,11 +35,13 @@ interface SidebarProps {
 interface MenuItem {
   icon: React.ElementType;
   label: string;
-  path: string;
+  path?: string;
+  action?: () => void;
   adminOnly?: boolean;
   badge?: string;
   badgeVariant?: 'default' | 'secondary' | 'destructive' | 'outline';
   info?: string;
+  isLogout?: boolean;
 }
 
 export function Sidebar({ isAdmin = false, onSignOut, onNavigate }: SidebarProps) {
@@ -103,30 +104,43 @@ export function Sidebar({ isAdmin = false, onSignOut, onNavigate }: SidebarProps
     { icon: Users, label: 'Kelola User', path: '/admin/users', adminOnly: true },
     { icon: Shield, label: 'Admin Panel', path: '/admin', adminOnly: true },
     { icon: Settings, label: 'Pengaturan', path: '/settings' },
+    { icon: LogOut, label: 'Keluar', action: onSignOut, isLogout: true },
   ];
 
   const filteredMenuItems = menuItems.filter(item => 
     !item.adminOnly || (item.adminOnly && isAdmin)
   );
 
-  const isActive = (path: string) => {
-    return location.pathname === path;
+  const isActive = (item: MenuItem) => {
+    return item.path ? location.pathname === item.path : false;
   };
 
-  const handleNavigation = (path: string) => {
-    // Navigate immediately
-    navigate(path);
-    // Close mobile menu after navigation starts
-    if (onNavigate) {
-      onNavigate();
+  const handleMenuClick = (item: MenuItem) => {
+    // If it's an action (like logout), execute the action
+    if (item.action) {
+      item.action();
+      // Close mobile menu
+      if (onNavigate) {
+        onNavigate();
+      }
+      return;
+    }
+    
+    // Otherwise navigate to path
+    if (item.path) {
+      navigate(item.path);
+      // Close mobile menu after navigation starts
+      if (onNavigate) {
+        onNavigate();
+      }
     }
   };
 
   return (
     <aside
       className={cn(
-        'h-screen bg-card border-r border-border/50 flex flex-col transition-all duration-300',
-        'w-64 lg:w-64',
+        'h-full bg-card border-r border-border/50 flex flex-col transition-all duration-300',
+        'w-64 lg:w-64 lg:h-screen',
         collapsed && 'lg:w-16'
       )}
     >
@@ -159,20 +173,21 @@ export function Sidebar({ isAdmin = false, onSignOut, onNavigate }: SidebarProps
         <div className="space-y-1 px-2">
           {filteredMenuItems.map((item) => {
             const Icon = item.icon;
-            const active = isActive(item.path);
+            const active = isActive(item);
             
             return (
-              <div key={item.path} className="relative group">
+              <div key={item.path || item.label} className="relative group">
                 <button
-                  onClick={() => handleNavigation(item.path)}
+                  onClick={() => handleMenuClick(item)}
                   className={cn(
                     'w-full flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg transition-colors text-left',
                     'hover:bg-accent hover:text-accent-foreground',
                     active && 'bg-secondary text-secondary-foreground font-medium',
+                    item.isLogout && 'text-destructive hover:text-foreground',
                     collapsed && 'lg:justify-center'
                   )}
                 >
-                  <Icon className={cn('h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0', active && 'text-primary')} />
+                  <Icon className={cn('h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0', active && 'text-primary', item.isLogout && 'group-hover:text-foreground')} />
                   {!collapsed && (
                     <div className="flex items-center justify-between flex-1 gap-2">
                       <span className="text-xs sm:text-sm">{item.label}</span>
@@ -209,22 +224,6 @@ export function Sidebar({ isAdmin = false, onSignOut, onNavigate }: SidebarProps
           })}
         </div>
       </nav>
-
-      {/* Footer */}
-      <div className="border-t border-border/50 p-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onSignOut}
-          className={cn(
-            'w-full justify-start gap-2 sm:gap-3 text-xs sm:text-sm',
-            collapsed && 'lg:justify-center lg:px-0'
-          )}
-        >
-          <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
-          {!collapsed && <span>Keluar</span>}
-        </Button>
-      </div>
     </aside>
   );
 }

@@ -110,7 +110,7 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Mobile Sidebar - Sheet */}
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <SheetContent side="left" className="p-0 w-64">
+        <SheetContent side="left" className="p-0 w-64 flex flex-col h-full">
           <Sidebar 
             isAdmin={profile?.is_admin} 
             onSignOut={handleSignOut}
