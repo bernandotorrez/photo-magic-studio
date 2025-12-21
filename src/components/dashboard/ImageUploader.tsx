@@ -16,7 +16,7 @@ interface Profile {
 }
 
 interface ImageUploaderProps {
-  onImageUploaded: (url: string, path: string, classification: string, options: any[]) => void; // Support both object[] and string[]
+  onImageUploaded: (url: string, path: string, classification: string, options: any[], responseData?: any) => void; // Support both object[] and string[]
   onMultipleImagesUploaded?: (images: Array<{url: string, path: string}>) => void; // For multiple images
   profile: Profile | null;
   classifyFunction?: string; // Edge function name for classification
@@ -130,7 +130,8 @@ export function ImageUploader({
         signedUrlData.signedUrl,
         fileName,
         classificationData.classification,
-        classificationData.enhancementOptions
+        classificationData.enhancementOptions,
+        classificationData // Pass full response data
       );
 
       toast({
@@ -219,7 +220,8 @@ export function ImageUploader({
         signedUrlData.signedUrl,
         fileName,
         classificationData.classification,
-        classificationData.enhancementOptions
+        classificationData.enhancementOptions,
+        classificationData // Pass full response data
       );
 
       toast({

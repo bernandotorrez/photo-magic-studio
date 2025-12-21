@@ -75,7 +75,13 @@ serve(async (req) => {
                 topLabel.includes('hat') || topLabel.includes('tie')) {
               category = 'fashion';
             } else if (topLabel.includes('person') || topLabel.includes('face') || topLabel.includes('people')) {
-              category = 'portrait';
+              // Check if it's beauty-related (hair, makeup, cosmetics)
+              if (topLabel.includes('hair') || topLabel.includes('makeup') || topLabel.includes('lipstick') ||
+                  topLabel.includes('cosmetic') || topLabel.includes('beauty') || topLabel.includes('hairstyle')) {
+                category = 'beauty';
+              } else {
+                category = 'portrait';
+              }
             } else if (topLabel.includes('room') || topLabel.includes('furniture') || topLabel.includes('interior') ||
                        topLabel.includes('living') || topLabel.includes('bedroom') || topLabel.includes('kitchen')) {
               category = 'interior';
@@ -85,6 +91,9 @@ serve(async (req) => {
             } else if (topLabel.includes('food') || topLabel.includes('dish') || topLabel.includes('meal') ||
                        topLabel.includes('pizza') || topLabel.includes('burger') || topLabel.includes('salad')) {
               category = 'food';
+            } else if (topLabel.includes('hair') || topLabel.includes('makeup') || topLabel.includes('lipstick') ||
+                       topLabel.includes('cosmetic') || topLabel.includes('beauty') || topLabel.includes('hairstyle')) {
+              category = 'beauty';
             }
             
             console.log('Detected label:', topLabel, '-> Mapped to category:', category);

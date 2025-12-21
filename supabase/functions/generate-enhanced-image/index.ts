@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { imageUrl, originalImagePath, imagePath, enhancement, enhancements, enhancementIds, classification, watermark, customPose, customFurniture, debugMode } = await req.json();
+    const { imageUrl, originalImagePath, imagePath, enhancement, enhancements, enhancementIds, classification, watermark, customPose, customFurniture, customPrompt, debugMode } = await req.json();
     
     // Get user ID and email from authorization header
     const authHeader = req.headers.get('authorization');
@@ -200,6 +200,11 @@ serve(async (req) => {
     if (customPose && customPose.trim()) {
       prompts.push(`Custom pose request: ${customPose.trim()}`);
       console.log('Added custom pose prompt:', customPose.trim());
+    }
+    
+    if (customPrompt && customPrompt.trim()) {
+      prompts.push(`Custom styling request: ${customPrompt.trim()}`);
+      console.log('Added custom prompt:', customPrompt.trim());
     }
     
     // Combine multiple prompts

@@ -18,7 +18,7 @@ interface EnhancementInfo {
 }
 
 interface SmartImageUploaderProps {
-  onImageUploaded: (url: string, path: string, classification: string, options: any[]) => void;
+  onImageUploaded: (url: string, path: string, classification: string, options: any[], responseData?: any) => void;
   onMultipleImagesUploaded?: (images: Array<{url: string, path: string, preview: string}>) => void;
   profile: Profile | null;
   selectedEnhancement: string | null;

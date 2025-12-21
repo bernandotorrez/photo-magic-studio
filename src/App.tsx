@@ -14,6 +14,7 @@ import AiPhotographer from "./pages/AiPhotographer";
 import InteriorDesign from "./pages/InteriorDesign";
 import ExteriorDesign from "./pages/ExteriorDesign";
 import FoodEnhancement from "./pages/FoodEnhancement";
+import AestheticClinic from "./pages/AestheticClinic";
 import ComingSoon from "./pages/ComingSoon";
 import HistoryPage from "./pages/History";
 import Admin from "./pages/Admin";
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="/interior-design" element={<InteriorDesign />} />
             <Route path="/exterior-design" element={<ExteriorDesign />} />
             <Route path="/food-enhancement" element={<FoodEnhancement />} />
+            <Route path="/aesthetic-clinic" element={<AestheticClinic />} />
             <Route path="/coming-soon" element={<ComingSoon />} />
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/admin" element={<Admin />} />
