@@ -19,6 +19,11 @@ import { supabase } from '@/integrations/supabase/client';
 
 const features = [
   {
+    icon: Coins,
+    title: 'Pay as You Go',
+    description: 'Butuh hanya 1 optimasi gambar? Kamu bisa beli 1 token saja seharga Rp. 1.000! Tidak perlu komitmen berlangganan yang mahal.',
+  },
+  {
     icon: Image,
     title: 'Upload Gambar',
     description: 'Upload foto produk Anda dengan mudah, support berbagai format gambar.',

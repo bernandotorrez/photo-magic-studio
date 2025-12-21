@@ -20,7 +20,8 @@ import {
   Rocket,
   CreditCard,
   FileText,
-  UtensilsCrossed
+  UtensilsCrossed,
+  History
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -98,6 +99,7 @@ export function Sidebar({ isAdmin = false, onSignOut, onNavigate }: SidebarProps
       badgeVariant: 'outline',
       info: 'Fitur AI baru akan segera hadir! Kami terus mengembangkan teknologi AI terbaru untuk membantu bisnis Anda.'
     },
+    { icon: History, label: 'Riwayat Generate', path: '/history' },
     { icon: Key, label: 'API Keys', path: '/api-keys', badge: 'Basic+', badgeVariant: 'default' },
     { icon: BookOpen, label: 'Dokumentasi API', path: '/api-documentation' },
     { icon: CreditCard, label: 'Paket & Harga', path: '/pricing' },
