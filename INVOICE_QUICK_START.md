@@ -2,7 +2,7 @@
 
 ## Akses Invoice
 
-1. **Login** ke aplikasi Photo Magic Studio
+1. **Login** ke aplikasi PixelNova AI
 2. Klik menu **"Invoice"** di sidebar (icon FileText)
 3. Anda akan melihat daftar invoice dari pembayaran yang sudah disetujui
 
@@ -48,7 +48,7 @@
 Invoice PDF berisi informasi lengkap:
 
 ### 1. Header Perusahaan
-- **PHOTO MAGIC STUDIO**
+- **PIXELNOVA AI**
 - AI-Powered Photo Enhancement Platform
 - www.photomagicstudio.com
 

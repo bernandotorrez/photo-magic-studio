@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { Logo } from '@/components/Logo';
 import { 
   Sparkles, 
   LayoutDashboard,
@@ -145,13 +146,10 @@ export function Sidebar({ isAdmin = false, onSignOut, onNavigate }: SidebarProps
       )}
     >
       {/* Header */}
-      <div className="h-14 sm:h-16 flex items-center justify-between px-3 sm:px-4 border-b border-border/50">
+      <div className="h-20 sm:h-24 flex items-center justify-between px-3 sm:px-4 border-b border-border/50">
         {!collapsed && (
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg gradient-primary flex items-center justify-center">
-              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-foreground" />
-            </div>
-            <span className="font-bold text-base sm:text-lg">Photo Magic</span>
+          <div className="flex items-center">
+            <Logo size="lg" />
           </div>
         )}
         <Button

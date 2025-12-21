@@ -12,7 +12,7 @@ const EMAIL_TEMPLATE = (email: string, verificationUrl: string) => `
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Konfirmasi Email - Photo Magic Studio</title>
+  <title>Konfirmasi Email - PixelNova AI</title>
   <style>
     body {
       margin: 0;
@@ -113,7 +113,7 @@ const EMAIL_TEMPLATE = (email: string, verificationUrl: string) => `
     </div>
     
     <div class="content">
-      <p>Thanks for signing up for <span class="app-name">Photo Magic Studio</span>!</p>
+      <p>Thanks for signing up for <span class="app-name">PixelNova AI</span>!</p>
       
       <p>Please confirm your email address (<span class="email-address">${email}</span>) by clicking the button below:</p>
       
@@ -134,7 +134,7 @@ const EMAIL_TEMPLATE = (email: string, verificationUrl: string) => `
     </div>
     
     <div class="footer">
-      <p style="margin: 0;">© 2025 Photo Magic Studio. All rights reserved.</p>
+      <p style="margin: 0;">© 2025 PixelNova AI. All rights reserved.</p>
       <p style="margin: 10px 0 0 0;">AI-powered image enhancement for product photos</p>
     </div>
   </div>

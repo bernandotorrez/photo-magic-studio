@@ -20,7 +20,7 @@ Sistem invoice memungkinkan user untuk melihat dan mendownload invoice dalam for
 Invoice PDF yang di-generate memiliki format profesional dengan informasi:
 
 **Header:**
-- Logo dan nama perusahaan: PHOTO MAGIC STUDIO
+- Logo dan nama perusahaan: PIXELNOVA AI
 - Tagline: AI-Powered Photo Enhancement Platform
 - Website: www.photomagicstudio.com
 

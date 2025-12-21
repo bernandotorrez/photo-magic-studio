@@ -51,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Use production URL for email verification, fallback to current origin for development
     const isProduction = window.location.hostname !== 'localhost';
     const redirectUrl = isProduction 
-      ? 'https://photo-magic-studio.vercel.app/auth/callback'
+      ? 'https://pixel-nova-ai.vercel.app/auth/callback'
       : `${window.location.origin}/auth/callback`;
     
     const { error } = await supabase.auth.signUp({

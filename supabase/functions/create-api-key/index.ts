@@ -12,7 +12,7 @@ interface CreateApiKeyRequest {
 
 // Generate a random API key
 function generateApiKey(): string {
-  const prefix = "eak"; // EnhanceAI Key
+  const prefix = "pna"; // PixelNova AI Key
   const randomBytes = new Uint8Array(32);
   crypto.getRandomValues(randomBytes);
   const randomString = Array.from(randomBytes)

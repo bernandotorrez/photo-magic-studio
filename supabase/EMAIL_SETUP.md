@@ -1,8 +1,8 @@
-# Email Template Setup untuk EnhanceAI
+# Email Template Setup untuk PixelNova AI
 
 ## Custom Email Verification Template
 
-Email verifikasi telah dikustomisasi dengan design yang modern dan profesional sesuai dengan branding EnhanceAI.
+Email verifikasi telah dikustomisasi dengan design yang modern dan profesional sesuai dengan branding PixelNova AI.
 
 ## Setup untuk Production (Supabase Dashboard)
 
@@ -17,7 +17,7 @@ Pilih **Confirm signup** template dan ganti dengan konten berikut:
 
 **Subject:**
 ```
-Confirm your email - EnhanceAI
+Confirm your email - PixelNova AI
 ```
 
 **Body (HTML):**
@@ -50,7 +50,7 @@ Setelah setup:
 - Professional button styling
 
 🎨 **Branding:**
-- EnhanceAI logo (✨)
+- PixelNova AI logo (✨)
 - Brand colors
 - Consistent spacing
 

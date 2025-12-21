@@ -12,7 +12,7 @@ const signUp = async (email: string, password: string, fullName?: string) => {
   // Use production URL for email verification
   const isProduction = window.location.hostname !== 'localhost';
   const redirectUrl = isProduction 
-    ? 'https://photo-magic-studio.vercel.app/auth/callback'
+    ? 'https://pixel-nova-ai.vercel.app/auth/callback'
     : `${window.location.origin}/auth/callback`;
   
   const { error } = await supabase.auth.signUp({
@@ -30,14 +30,14 @@ const signUp = async (email: string, password: string, fullName?: string) => {
 ```
 
 **Benefits:**
-- ✅ Production: Uses `https://photo-magic-studio.vercel.app/auth/callback`
+- ✅ Production: Uses `https://pixel-nova-ai.vercel.app/auth/callback`
 - ✅ Development: Uses `http://localhost:5173/auth/callback`
 - ✅ Auto-detects environment
 
 #### supabase/functions/send-verification-email/index.ts
 Updated email template:
-- Title: "Photo Magic Studio"
-- Footer: "© 2025 Photo Magic Studio"
+- Title: "PixelNova AI"
+- Footer: "© 2025 PixelNova AI"
 - Description: "AI-powered image enhancement for product photos"
 
 ### 2. Supabase Dashboard Configuration
@@ -57,8 +57,8 @@ You need to update Supabase settings to allow the new redirect URL.
 3. **Add Redirect URLs**
    Add these URLs to "Redirect URLs" list:
    ```
-   https://photo-magic-studio.vercel.app/auth/callback
-   https://photo-magic-studio.vercel.app/**
+   https://pixel-nova-ai.vercel.app/auth/callback
+   https://pixel-nova-ai.vercel.app/**
    http://localhost:5173/auth/callback
    http://localhost:5173/**
    ```
@@ -66,7 +66,7 @@ You need to update Supabase settings to allow the new redirect URL.
 4. **Site URL**
    Set "Site URL" to:
    ```
-   https://photo-magic-studio.vercel.app
+   https://pixel-nova-ai.vercel.app
    ```
 
 5. **Save Changes**
@@ -109,7 +109,7 @@ vercel --prod
 
 # Register with email
 # Check email for verification link
-# Link should redirect to https://photo-magic-studio.vercel.app/auth/callback
+# Link should redirect to https://pixel-nova-ai.vercel.app/auth/callback
 ```
 
 ### 5. Verification Flow
@@ -121,7 +121,7 @@ Supabase sends email
     ↓
 User clicks verification link
     ↓
-Redirects to: https://photo-magic-studio.vercel.app/auth/callback
+Redirects to: https://pixel-nova-ai.vercel.app/auth/callback
     ↓
 AuthCallback page processes token
     ↓
@@ -138,7 +138,7 @@ Shows success toast
 
 **Solution:**
 1. Check Supabase Dashboard → Authentication → URL Configuration
-2. Add `https://photo-magic-studio.vercel.app/**` to Redirect URLs
+2. Add `https://pixel-nova-ai.vercel.app/**` to Redirect URLs
 3. Save and try again
 
 ### Email link redirects to wrong URL

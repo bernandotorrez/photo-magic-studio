@@ -34,7 +34,7 @@ CREATE INDEX IF NOT EXISTS idx_subscription_tiers_active ON subscription_tiers(i
 
 -- Insert default tiers
 INSERT INTO subscription_tiers (tier_id, tier_name, display_order, price, tokens, bonus_tokens, description, features, limitations, api_rate_limit, is_active, is_popular, color, bg_color, icon) VALUES
-  ('free', 'Gratis', 1, 0, 5, 0, 'Cocok untuk mencoba fitur dasar EnhanceAI', 
+  ('free', 'Gratis', 1, 0, 5, 0, 'Cocok untuk mencoba fitur dasar PixelNova AI', 
    '["5 token per bulan", "Akses fitur dasar", "Support email", "Watermark pada hasil"]'::jsonb,
    '["Tidak ada akses API", "Tidak ada priority support", "Tidak ada custom enhancement"]'::jsonb,
    0, true, false, 'text-gray-500', 'bg-gray-500/10', 'Sparkles'),
