@@ -25,6 +25,12 @@ interface Payment {
   transfer_date: string;
   admin_notes: string | null;
   created_at: string;
+  subscription_plan?: string;
+}
+
+interface SubscriptionTier {
+  tier_id: string;
+  bonus_tokens: number;
 }
 
 export default function PaymentManagement() {
@@ -32,9 +38,11 @@ export default function PaymentManagement() {
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [notes, setNotes] = useState<{ [key: string]: string }>({});
+  const [subscriptionTiers, setSubscriptionTiers] = useState<SubscriptionTier[]>([]);
 
   useEffect(() => {
     fetchPayments();
+    fetchSubscriptionTiers();
   }, []);
 
   const fetchPayments = async () => {
@@ -53,13 +61,47 @@ export default function PaymentManagement() {
     }
   };
 
-  const calculateBonusTokens = (paymentId: string): number => {
-    const payment = payments.find(p => p.id === paymentId);
-    if (!payment || !payment.unique_code) return 0;
+  const fetchSubscriptionTiers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('subscription_tiers' as any)
+        .select('tier_id, bonus_tokens');
 
-    // Bonus token = unique_code / 1000 (rounded down)
+      if (error) throw error;
+      setSubscriptionTiers(data || []);
+    } catch (error: any) {
+      console.error('Failed to load subscription tiers:', error);
+    }
+  };
+
+  const calculateBonusFromUniqueCode = (uniqueCode: number): number => {
+    // Bonus token dari kode unik = unique_code / 1000 (rounded down)
     // Example: 1456 → 1 token, 456 → 0 token, 1999 → 1 token
-    return Math.floor(payment.unique_code / 1000);
+    return Math.floor(uniqueCode / 1000);
+  };
+
+  const getBonusTokenBreakdown = (payment: Payment) => {
+    // Get bonus from package (from subscription_tiers)
+    let bonusFromPackage = 0;
+    if (payment.subscription_plan) {
+      const tier = subscriptionTiers.find(t => t.tier_id === payment.subscription_plan);
+      bonusFromPackage = tier?.bonus_tokens || 0;
+    }
+
+    // Calculate bonus from unique code
+    const bonusFromUniqueCode = payment.unique_code ? calculateBonusFromUniqueCode(payment.unique_code) : 0;
+
+    // Total bonus
+    const totalBonus = bonusFromPackage + bonusFromUniqueCode;
+
+    // If no bonus at all, return null
+    if (totalBonus === 0) return null;
+
+    return {
+      total: totalBonus,
+      fromPackage: bonusFromPackage,
+      fromUniqueCode: bonusFromUniqueCode
+    };
   };
 
   const handleApprove = async (paymentId: string) => {
@@ -68,17 +110,17 @@ export default function PaymentManagement() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const bonusTokens = calculateBonusTokens(paymentId);
-
-      // Update payment status with bonus tokens
+      const payment = payments.find(p => p.id === paymentId);
+      const bonusFromUniqueCode = payment?.unique_code ? calculateBonusFromUniqueCode(payment.unique_code) : 0;
+      
+      // Bonus tokens sudah dihitung di backend, kita hanya perlu update status
       const { error: updateError } = await supabase
         .from('payments' as any)
         .update({
           payment_status: 'approved',
           verified_by: user.id,
           verified_at: new Date().toISOString(),
-          admin_notes: notes[paymentId] || null,
-          bonus_tokens: bonusTokens
+          admin_notes: notes[paymentId] || null
         })
         .eq('id', paymentId);
 
@@ -91,9 +133,15 @@ export default function PaymentManagement() {
       if (processError) throw processError;
       if (!success) throw new Error('Failed to process payment');
 
-      const message = bonusTokens > 0 
-        ? `Payment approved! ${bonusTokens} bonus token(s) dari kode unik.`
-        : 'Payment approved and tokens added to user account';
+      const breakdown = payment ? getBonusTokenBreakdown(payment) : null;
+      let message = 'Payment approved and tokens added to user account';
+      
+      if (breakdown && breakdown.total > 0) {
+        const parts = [];
+        if (breakdown.fromPackage > 0) parts.push(`${breakdown.fromPackage} dari paket`);
+        if (breakdown.fromUniqueCode > 0) parts.push(`${breakdown.fromUniqueCode} dari kode unik`);
+        message = `Payment approved! Bonus: +${breakdown.total} token (${parts.join(' dan ')})`;
+      }
       
       toast.success(message);
       await fetchPayments();
@@ -245,16 +293,26 @@ export default function PaymentManagement() {
                     </div>
                   )}
 
-                  {payment.unique_code && calculateBonusTokens(payment.id) > 0 && (
-                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                      <p className="text-sm text-green-700 font-medium">
-                        🎁 Bonus Token Otomatis: +{calculateBonusTokens(payment.id)} token
-                      </p>
-                      <p className="text-xs text-green-600 mt-1">
-                        Dari kode unik {payment.unique_code} (kelipatan 1.000 = bonus token)
-                      </p>
-                    </div>
-                  )}
+                  {(() => {
+                    const breakdown = getBonusTokenBreakdown(payment);
+                    if (!breakdown) return null;
+
+                    return (
+                      <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <p className="text-sm text-green-700 font-medium">
+                          🎁 Bonus Token Otomatis: +{breakdown.total} token
+                        </p>
+                        <div className="text-xs text-green-600 mt-1 space-y-0.5">
+                          {breakdown.fromPackage > 0 && (
+                            <p>• +{breakdown.fromPackage} token dari paket berlangganan</p>
+                          )}
+                          {breakdown.fromUniqueCode > 0 && payment.unique_code && (
+                            <p>• +{breakdown.fromUniqueCode} token dari kode unik {payment.unique_code} (kelipatan 1.000)</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   <div className="space-y-2">
                     <Label htmlFor={`notes-${payment.id}`}>Admin Notes</Label>
@@ -346,16 +404,26 @@ export default function PaymentManagement() {
                       <p className="font-medium capitalize">{payment.payment_status}</p>
                     </div>
                   </div>
-                  {payment.bonus_tokens > 0 && (
-                    <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded text-sm">
-                      <p className="font-medium text-green-700">
-                        🎁 Bonus Token: +{payment.bonus_tokens} token dari kode unik {payment.unique_code}
-                      </p>
-                      <p className="text-xs text-green-600 mt-1">
-                        Kode unik kelipatan 1.000 = bonus token otomatis
-                      </p>
-                    </div>
-                  )}
+                  {(() => {
+                    const breakdown = getBonusTokenBreakdown(payment);
+                    if (!breakdown) return null;
+
+                    return (
+                      <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded text-sm">
+                        <p className="font-medium text-green-700">
+                          🎁 Bonus Token: +{breakdown.total} token
+                        </p>
+                        <div className="text-xs text-green-600 mt-1 space-y-0.5">
+                          {breakdown.fromPackage > 0 && (
+                            <p>• +{breakdown.fromPackage} token dari paket</p>
+                          )}
+                          {breakdown.fromUniqueCode > 0 && payment.unique_code && (
+                            <p>• +{breakdown.fromUniqueCode} token dari kode unik {payment.unique_code}</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
                   {payment.admin_notes && (
                     <div className="mt-3 p-2 bg-muted rounded text-sm">
                       <p className="font-medium">Notes:</p>
