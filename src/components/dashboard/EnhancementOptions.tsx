@@ -14,6 +14,7 @@ interface EnhancementOption {
   enhancement_type: string;
   display_name: string;
   description?: string;
+  category?: string;
   is_default?: boolean;
   is_featured?: boolean;
 }
@@ -100,30 +101,59 @@ export function EnhancementOptions({
   });
 
   const handleToggleEnhancement = (enhancementId: string) => {
-    // Check if this is a hair style enhancement (single selection only)
-    const isHairStyle = classification === 'beauty' && 
-      (enhancementId.toLowerCase().includes('hair_style') || 
-       enhancementId.toLowerCase().includes('hairstyle'));
+    // Check if this is a hair style menu (all items are single selection)
+    const isHairStyleMenu = classification === 'hairstyle' || classification === 'hair_style';
     
-    if (isHairStyle) {
-      // For hair style: single selection only
+    if (isHairStyleMenu) {
+      // For hair style menu: single selection only (radio button behavior)
       if (selectedEnhancements.includes(enhancementId)) {
         // Deselect if already selected
-        onSelect(selectedEnhancements.filter(e => e !== enhancementId));
+        onSelect([]);
       } else {
-        // Replace any existing hair style selection with this one
-        const otherSelections = selectedEnhancements.filter(e => 
-          !e.toLowerCase().includes('hair_style') && 
-          !e.toLowerCase().includes('hairstyle')
-        );
-        onSelect([...otherSelections, enhancementId]);
+        // Replace all selections with this one
+        onSelect([enhancementId]);
       }
     } else {
-      // For other enhancements: multiple selection
-      if (selectedEnhancements.includes(enhancementId)) {
-        onSelect(selectedEnhancements.filter(e => e !== enhancementId));
+      // Check if this is a hair style enhancement in other menus
+      const isNewFormat = options.length > 0 && typeof options[0] === 'object' && 'id' in options[0];
+      
+      // Helper function to check if an enhancement is hair style
+      const checkIsHairStyle = (id: string): boolean => {
+        if (isNewFormat) {
+          const option = (options as EnhancementOption[]).find(opt => opt.id === id);
+          // Check category, enhancement_type, or display_name
+          return (
+            option?.category?.includes('hair_style') ||
+            option?.enhancement_type?.includes('hair_style') ||
+            option?.display_name?.toLowerCase().includes('hair') ||
+            false
+          );
+        } else {
+          return id.toLowerCase().includes('hair_style') || 
+                 id.toLowerCase().includes('hairstyle');
+        }
+      };
+      
+      const isHairStyle = checkIsHairStyle(enhancementId);
+      
+      if (isHairStyle) {
+        // For hair style: single selection only
+        if (selectedEnhancements.includes(enhancementId)) {
+          // Deselect if already selected
+          onSelect(selectedEnhancements.filter(e => e !== enhancementId));
+        } else {
+          // Replace any existing hair style selection with this one
+          // Remove all other hair style selections first
+          const otherSelections = selectedEnhancements.filter(e => !checkIsHairStyle(e));
+          onSelect([...otherSelections, enhancementId]);
+        }
       } else {
-        onSelect([...selectedEnhancements, enhancementId]);
+        // For other enhancements: multiple selection
+        if (selectedEnhancements.includes(enhancementId)) {
+          onSelect(selectedEnhancements.filter(e => e !== enhancementId));
+        } else {
+          onSelect([...selectedEnhancements, enhancementId]);
+        }
       }
     }
   };
