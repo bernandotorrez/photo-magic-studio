@@ -295,14 +295,14 @@ export function GenerationHistory() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <History className="w-5 h-5" />
+          <CardTitle className="flex items-center gap-2 text-2xl sm:text-3xl">
+            <History className="w-6 h-6" />
             Riwayat Generate
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-base">
             {isFreeUser 
-              ? 'Riwayat 7 hari terakhir (Paket Free)'
-              : 'Semua hasil generate gambar Anda tersimpan di sini'
+              ? 'Riwayat 7 hari terakhir (Paket Free) - Upgrade untuk akses unlimited'
+              : 'Semua hasil generate gambar Anda dari Fashion, AI Photographer, Interior, Exterior, dan Food Enhancement'
             }
           </CardDescription>
         </CardHeader>

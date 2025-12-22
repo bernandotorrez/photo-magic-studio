@@ -286,42 +286,56 @@ serve(async (req) => {
       );
     }
 
-    // Build enhancement prompt from database
-    let enhancementPrompt = '';
-    let enhancementDisplayName = enhancement;
+    // Support multiple enhancements (comma-separated)
+    const enhancementList = enhancement.includes(',') 
+      ? enhancement.split(',').map((e: string) => e.trim()).filter((e: string) => e.length > 0)
+      : [enhancement];
     
-    // Query by display_name OR enhancement_type (flexible for users)
-    console.log('Querying enhancement:', enhancement);
+    console.log('Processing enhancements:', enhancementList);
+
+    // Build enhancement prompts from database
+    const enhancementPrompts: string[] = [];
+    const enhancementDisplayNames: string[] = [];
     
-    // Try display_name first (with emoji, user-friendly)
-    let { data: promptData } = await supabase
-      .from('enhancement_prompts')
-      .select('prompt_template, display_name, enhancement_type')
-      .eq('display_name', enhancement)
-      .eq('is_active', true)
-      .maybeSingle();
-    
-    // If not found, try by enhancement_type (without emoji, code-friendly)
-    if (!promptData) {
-      console.log('Not found by display_name, trying enhancement_type...');
-      const result = await supabase
+    for (const enh of enhancementList) {
+      // Query by display_name OR enhancement_type (flexible for users)
+      console.log('Querying enhancement:', enh);
+      
+      // Try display_name first (with emoji, user-friendly)
+      let { data: promptData } = await supabase
         .from('enhancement_prompts')
         .select('prompt_template, display_name, enhancement_type')
-        .eq('enhancement_type', enhancement)
+        .eq('display_name', enh)
         .eq('is_active', true)
         .maybeSingle();
-      promptData = result.data;
+      
+      // If not found, try by enhancement_type (without emoji, code-friendly)
+      if (!promptData) {
+        console.log('Not found by display_name, trying enhancement_type...');
+        const result = await supabase
+          .from('enhancement_prompts')
+          .select('prompt_template, display_name, enhancement_type')
+          .eq('enhancement_type', enh)
+          .eq('is_active', true)
+          .maybeSingle();
+        promptData = result.data;
+      }
+      
+      if (promptData?.prompt_template) {
+        enhancementPrompts.push(promptData.prompt_template);
+        enhancementDisplayNames.push(promptData.display_name);
+        console.log('✅ Using database prompt for:', enh, '→', promptData.display_name);
+      } else {
+        // Fallback: simple prompt
+        console.log('⚠️ No database prompt found, using simple fallback for:', enh);
+        enhancementPrompts.push(`Apply ${enh} enhancement professionally for e-commerce product photography.`);
+        enhancementDisplayNames.push(enh);
+      }
     }
     
-    if (promptData?.prompt_template) {
-      enhancementPrompt = promptData.prompt_template;
-      enhancementDisplayName = promptData.display_name;
-      console.log('✅ Using database prompt for:', enhancement, '→', promptData.display_name);
-    } else {
-      // Ultimate fallback: simple prompt
-      console.log('⚠️ No database prompt found, using simple fallback for:', enhancement);
-      enhancementPrompt = `Apply ${enhancement} enhancement professionally for e-commerce product photography.`;
-    }
+    // Combine all enhancement prompts
+    const combinedEnhancementPrompt = enhancementPrompts.join(' Additionally, ');
+    const combinedDisplayNames = enhancementDisplayNames.join(', ');
 
     // Build watermark instruction
     let watermarkInstruction = '';
@@ -335,47 +349,47 @@ serve(async (req) => {
       watermarkInstruction = ' Remove any existing watermarks, text overlays, logos, or branding from the image. Ensure the final image is clean without any text or logo elements.';
     }
 
-    // Determine if model is needed based on enhancement name
-    const titleLower = enhancementDisplayName.toLowerCase();
+    // Determine if model is needed based on enhancement names
+    const combinedTitleLower = combinedDisplayNames.toLowerCase();
     const needsModel = 
-      titleLower.includes('model') || 
-      titleLower.includes('dipakai') || 
-      titleLower.includes('worn') ||
-      titleLower.includes('lifestyle') ||
-      titleLower.includes('manekin') ||
-      titleLower.includes('mannequin') ||
-      titleLower.includes('on-feet') ||
-      titleLower.includes('saat dipakai') ||
-      titleLower.includes('bagian tubuh') ||
-      titleLower.includes('leher') ||
-      titleLower.includes('tangan') ||
-      titleLower.includes('pergelangan');
+      combinedTitleLower.includes('model') || 
+      combinedTitleLower.includes('dipakai') || 
+      combinedTitleLower.includes('worn') ||
+      combinedTitleLower.includes('lifestyle') ||
+      combinedTitleLower.includes('manekin') ||
+      combinedTitleLower.includes('mannequin') ||
+      combinedTitleLower.includes('on-feet') ||
+      combinedTitleLower.includes('saat dipakai') ||
+      combinedTitleLower.includes('bagian tubuh') ||
+      combinedTitleLower.includes('leher') ||
+      combinedTitleLower.includes('tangan') ||
+      combinedTitleLower.includes('pergelangan');
     
     const imageUrls = [imageUrl];
     
     if (needsModel) {
-      if (titleLower.includes('hijab') || titleLower.includes('berhijab')) {
+      if (combinedTitleLower.includes('hijab') || combinedTitleLower.includes('berhijab')) {
         imageUrls.push('https://dcfnvebphjuwtlfuudcd.supabase.co/storage/v1/object/public/model-assets/model_female_hijab.png');
-      } else if (titleLower.includes('wanita') || titleLower.includes('female') || titleLower.includes('woman')) {
+      } else if (combinedTitleLower.includes('wanita') || combinedTitleLower.includes('female') || combinedTitleLower.includes('woman')) {
         imageUrls.push('https://dcfnvebphjuwtlfuudcd.supabase.co/storage/v1/object/public/model-assets/model_female.png');
-      } else if (titleLower.includes('pria') || titleLower.includes('male') || titleLower.includes('man')) {
+      } else if (combinedTitleLower.includes('pria') || combinedTitleLower.includes('male') || combinedTitleLower.includes('man')) {
         imageUrls.push('https://dcfnvebphjuwtlfuudcd.supabase.co/storage/v1/object/public/model-assets/model_male.png');
       } else {
         imageUrls.push('https://dcfnvebphjuwtlfuudcd.supabase.co/storage/v1/object/public/model-assets/model_female.png');
       }
     }
 
-    let generatedPrompt = enhancementPrompt;
+    let generatedPrompt = combinedEnhancementPrompt;
     if (needsModel && imageUrls.length === 2) {
-      const productType = titleLower.includes('shirt') || titleLower.includes('kaos') || titleLower.includes('baju') ? 'shirt' :
-                         titleLower.includes('dress') || titleLower.includes('gaun') ? 'dress' :
-                         titleLower.includes('jacket') || titleLower.includes('jaket') ? 'jacket' :
-                         titleLower.includes('pants') || titleLower.includes('celana') ? 'pants' :
-                         titleLower.includes('shoe') || titleLower.includes('sepatu') ? 'shoes' :
-                         titleLower.includes('bag') || titleLower.includes('tas') ? 'bag' :
-                         titleLower.includes('watch') || titleLower.includes('jam') ? 'watch' :
-                         titleLower.includes('necklace') || titleLower.includes('kalung') ? 'necklace' :
-                         titleLower.includes('bracelet') || titleLower.includes('gelang') ? 'bracelet' :
+      const productType = combinedTitleLower.includes('shirt') || combinedTitleLower.includes('kaos') || combinedTitleLower.includes('baju') ? 'shirt' :
+                         combinedTitleLower.includes('dress') || combinedTitleLower.includes('gaun') ? 'dress' :
+                         combinedTitleLower.includes('jacket') || combinedTitleLower.includes('jaket') ? 'jacket' :
+                         combinedTitleLower.includes('pants') || combinedTitleLower.includes('celana') ? 'pants' :
+                         combinedTitleLower.includes('shoe') || combinedTitleLower.includes('sepatu') ? 'shoes' :
+                         combinedTitleLower.includes('bag') || combinedTitleLower.includes('tas') ? 'bag' :
+                         combinedTitleLower.includes('watch') || combinedTitleLower.includes('jam') ? 'watch' :
+                         combinedTitleLower.includes('necklace') || combinedTitleLower.includes('kalung') ? 'necklace' :
+                         combinedTitleLower.includes('bracelet') || combinedTitleLower.includes('gelang') ? 'bracelet' :
                          'clothing';
       
       generatedPrompt = `Make the ${productType} from file 1 worn by the model from file 2. The model should use a natural professional pose like a fashion model to showcase the ${productType}. Keep the exact face, body, and appearance of the model from file 2. Preserve any text, logos, or branding that exists on the ${productType} from file 1 - do not remove or alter them. Use professional e-commerce photography style with clean background and studio lighting. The ${productType} should fit naturally on the model's body.`;
@@ -540,7 +554,7 @@ serve(async (req) => {
             user_email: userEmail,
             original_image_path: 'api-upload',
             generated_image_path: fileName,
-            enhancement_type: enhancementDisplayName,
+            enhancement_type: combinedDisplayNames,
             classification_result: classification || 'unknown',
             prompt_used: generatedPrompt
           });

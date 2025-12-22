@@ -35,16 +35,44 @@ interface Enhancement {
   sort_order: number;
 }
 
+interface SubscriptionTier {
+  tier_id: string;
+  tier_name: string;
+  api_rate_limit: number;
+  tokens: number;
+}
+
 export default function UserApiGuide() {
   const { toast } = useToast();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [enhancements, setEnhancements] = useState<Enhancement[]>([]);
   const [loadingEnhancements, setLoadingEnhancements] = useState(true);
+  const [tiers, setTiers] = useState<SubscriptionTier[]>([]);
+  const [loadingTiers, setLoadingTiers] = useState(true);
 
   // Load enhancements from database
   useEffect(() => {
     loadEnhancements();
+    loadSubscriptionTiers();
   }, []);
+
+  const loadSubscriptionTiers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('subscription_tiers')
+        .select('tier_id, tier_name, api_rate_limit, tokens')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
+      if (!error && data) {
+        setTiers(data);
+      }
+    } catch (error) {
+      console.error('Error loading subscription tiers:', error);
+    } finally {
+      setLoadingTiers(false);
+    }
+  };
 
   const loadEnhancements = async () => {
     try {
@@ -252,29 +280,42 @@ export default function UserApiGuide() {
               <CardTitle>Siapa yang Bisa Menggunakan?</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-4 border rounded-lg bg-red-500/5 border-red-500/20">
-                  <div>
-                    <p className="font-semibold">Free Plan</p>
-                    <p className="text-sm text-muted-foreground">Tidak ada akses API</p>
-                  </div>
-                  <XCircle className="w-6 h-6 text-red-500" />
+              {loadingTiers ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                 </div>
-                <div className="flex items-center justify-between p-4 border rounded-lg bg-green-500/5 border-green-500/20">
-                  <div>
-                    <p className="font-semibold">Basic Plan</p>
-                    <p className="text-sm text-muted-foreground">5 requests/menit • 50 generations/bulan</p>
-                  </div>
-                  <CheckCircle2 className="w-6 h-6 text-green-500" />
+              ) : (
+                <div className="space-y-3">
+                  {tiers.map((tier) => {
+                    const hasApiAccess = tier.api_rate_limit > 0;
+                    return (
+                      <div 
+                        key={tier.tier_id}
+                        className={`flex items-center justify-between p-4 border rounded-lg ${
+                          hasApiAccess 
+                            ? 'bg-green-500/5 border-green-500/20' 
+                            : 'bg-red-500/5 border-red-500/20'
+                        }`}
+                      >
+                        <div>
+                          <p className="font-semibold">{tier.tier_name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {hasApiAccess 
+                              ? `${tier.api_rate_limit} requests/menit • ${tier.tokens} generations/bulan`
+                              : 'Tidak ada akses API'
+                            }
+                          </p>
+                        </div>
+                        {hasApiAccess ? (
+                          <CheckCircle2 className="w-6 h-6 text-green-500" />
+                        ) : (
+                          <XCircle className="w-6 h-6 text-red-500" />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-                <div className="flex items-center justify-between p-4 border rounded-lg bg-green-500/5 border-green-500/20">
-                  <div>
-                    <p className="font-semibold">Pro Plan</p>
-                    <p className="text-sm text-muted-foreground">10 requests/menit • 200 generations/bulan</p>
-                  </div>
-                  <CheckCircle2 className="w-6 h-6 text-green-500" />
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -356,7 +397,7 @@ export default function UserApiGuide() {
               
               <CodeBlock
                 language="bash"
-                label="Test Command"
+                label="Single Enhancement"
                 code={`curl -X POST ${SUPABASE_URL}/functions/v1/api-generate \\
   -H "Content-Type: application/json" \\
   -H "x-api-key: GANTI_DENGAN_API_KEY_ANDA" \\
@@ -365,6 +406,27 @@ export default function UserApiGuide() {
     "enhancement": "add_female_model"
   }'`}
               />
+
+              <CodeBlock
+                language="bash"
+                label="Multiple Enhancements (Comma-Separated)"
+                code={`curl -X POST ${SUPABASE_URL}/functions/v1/api-generate \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: GANTI_DENGAN_API_KEY_ANDA" \\
+  -d '{
+    "imageUrl": "https://example.com/product.jpg",
+    "enhancement": "background_removal, color_correction, add_shadow"
+  }'`}
+              />
+
+              <Alert>
+                <Sparkles className="h-4 w-4 text-primary" />
+                <AlertTitle>💡 Multiple Enhancements</AlertTitle>
+                <AlertDescription>
+                  Anda bisa menggabungkan beberapa enhancement sekaligus dengan memisahkan menggunakan koma (,). 
+                  Contoh: "background_removal, color_correction, add_shadow"
+                </AlertDescription>
+              </Alert>
 
               <Alert>
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -429,6 +491,12 @@ generateImage(
   'add_female_model'
 );
 
+// ✨ NEW: Multiple enhancements (comma-separated)
+generateImage(
+  'https://example.com/product.jpg',
+  'background_removal, color_correction, add_shadow'
+);
+
 // ✨ NEW: Contoh dengan custom pose
 generateImage(
   'https://example.com/portrait.jpg',
@@ -446,6 +514,19 @@ generateImage(
   {
     classification: 'interior',
     customFurniture: 'sofa modern, meja TV, rak buku, karpet'
+  }
+);
+
+// ✨ NEW: Multiple enhancements + custom options
+generateImage(
+  'https://example.com/shirt.jpg',
+  'add_female_model, color_correction, professional_lighting',
+  {
+    classification: 'clothing',
+    watermark: {
+      type: 'text',
+      text: 'My Brand'
+    }
   }
 );`}
                 />
@@ -466,13 +547,18 @@ import os
 # Simpan API key di environment variable
 API_KEY = os.getenv('API_KEY')
 
-def generate_image(image_url, enhancement):
+def generate_image(image_url, enhancement, options=None):
+    payload = {
+        'imageUrl': image_url,
+        'enhancement': enhancement
+    }
+    
+    if options:
+        payload.update(options)
+    
     response = requests.post(
         '${SUPABASE_URL}/functions/v1/api-generate',
-        json={
-            'imageUrl': image_url,
-            'enhancement': enhancement
-        },
+        json=payload,
         headers={
             'Content-Type': 'application/json',
             'x-api-key': API_KEY
@@ -488,10 +574,39 @@ def generate_image(image_url, enhancement):
     else:
         print('Error:', data.get('error'))
 
-# Contoh penggunaan
+# Contoh penggunaan basic
 generate_image(
     'https://example.com/product.jpg',
     'add_female_model'
+)
+
+# ✨ NEW: Multiple enhancements (comma-separated)
+generate_image(
+    'https://example.com/product.jpg',
+    'background_removal, color_correction, add_shadow'
+)
+
+# ✨ NEW: Contoh dengan custom pose
+generate_image(
+    'https://example.com/portrait.jpg',
+    'ubah pose',
+    {
+        'classification': 'person',
+        'customPose': 'sitting on a chair, hands on lap, smiling'
+    }
+)
+
+# ✨ NEW: Multiple enhancements + custom options
+generate_image(
+    'https://example.com/shirt.jpg',
+    'add_female_model, color_correction, professional_lighting',
+    {
+        'classification': 'clothing',
+        'watermark': {
+            'type': 'text',
+            'text': 'My Brand'
+        }
+    }
 )`}
                 />
               </div>
@@ -509,16 +624,23 @@ generate_image(
 // Simpan API key di environment variable
 $apiKey = getenv('API_KEY');
 
-function generateImage($imageUrl, $enhancement) {
+function generateImage($imageUrl, $enhancement, $options = []) {
     global $apiKey;
+    
+    $payload = [
+        'imageUrl' => $imageUrl,
+        'enhancement' => $enhancement
+    ];
+    
+    // Merge dengan options jika ada
+    if (!empty($options)) {
+        $payload = array_merge($payload, $options);
+    }
     
     $ch = curl_init('${SUPABASE_URL}/functions/v1/api-generate');
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
-        'imageUrl' => $imageUrl,
-        'enhancement' => $enhancement
-    ]));
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         'Content-Type: application/json',
         'x-api-key: ' . $apiKey
@@ -537,10 +659,39 @@ function generateImage($imageUrl, $enhancement) {
     }
 }
 
-// Contoh penggunaan
+// Contoh penggunaan basic
 generateImage(
     'https://example.com/product.jpg',
     'add_female_model'
+);
+
+// ✨ NEW: Multiple enhancements (comma-separated)
+generateImage(
+    'https://example.com/product.jpg',
+    'background_removal, color_correction, add_shadow'
+);
+
+// ✨ NEW: Contoh dengan custom pose
+generateImage(
+    'https://example.com/portrait.jpg',
+    'ubah pose',
+    [
+        'classification' => 'person',
+        'customPose' => 'sitting on a chair, hands on lap, smiling'
+    ]
+);
+
+// ✨ NEW: Multiple enhancements + custom options
+generateImage(
+    'https://example.com/shirt.jpg',
+    'add_female_model, color_correction, professional_lighting',
+    [
+        'classification' => 'clothing',
+        'watermark' => [
+            'type' => 'text',
+            'text' => 'My Brand'
+        ]
+    ]
 );
 ?>`}
                 />
@@ -646,8 +797,9 @@ generateImage(
                   Bisa generate banyak gambar sekaligus?
                 </h4>
                 <p className="text-sm text-muted-foreground">
-                  Ya, tapi perhatikan rate limit. Basic: 5 requests/menit, Pro: 10 requests/menit. 
+                  Ya, tapi perhatikan rate limit sesuai paket Anda. 
                   Untuk batch processing, gunakan queue system atau delay antar requests.
+                  Cek rate limit paket Anda di tab "Panduan" di atas.
                 </p>
               </div>
 
