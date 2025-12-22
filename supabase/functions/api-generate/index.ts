@@ -483,10 +483,10 @@ serve(async (req) => {
       );
     }
 
-    // Poll for completion
+    // Poll for completion (max 5 minutes for complex generations)
     let generatedImageUrl = null;
-    const maxAttempts = 60;
-    const pollInterval = 2000;
+    const maxAttempts = 150; // 150 attempts
+    const pollInterval = 2000; // 2 seconds = max 5 minutes total (300 seconds)
     
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       await new Promise(resolve => setTimeout(resolve, pollInterval));

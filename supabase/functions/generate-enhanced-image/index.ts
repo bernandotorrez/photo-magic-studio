@@ -449,10 +449,11 @@ serve(async (req) => {
     console.log('Task created successfully. Task ID:', taskId);
     console.log('Starting to poll for job completion...');
 
-    // Poll for job completion (max 2 minutes for complex generations)
+    // Poll for job completion (max 5 minutes for complex generations like hair style with color changes)
+    // Hair style with color changes can take 4-5 minutes on average
     let generatedImageUrl = null;
-    const maxAttempts = 60; // 60 attempts
-    const pollInterval = 2000; // 2 seconds = max 2 minutes total
+    const maxAttempts = 150; // 150 attempts
+    const pollInterval = 2000; // 2 seconds = max 5 minutes total (300 seconds)
     
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       // Wait before polling (don't poll immediately on first attempt)
