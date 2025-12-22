@@ -274,6 +274,9 @@ export function ImageUploader({
   // Camera functions
   const startCamera = async () => {
     setCameraError(null);
+    console.log('🎥 Starting camera...');
+    console.log('🎥 videoRef.current:', videoRef.current);
+    
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
@@ -283,13 +286,28 @@ export function ImageUploader({
         } 
       });
       
+      console.log('✅ Camera stream obtained:', stream);
+      console.log('✅ Stream active:', stream.active);
+      console.log('✅ Video tracks:', stream.getVideoTracks());
+      
       if (videoRef.current) {
+        console.log('✅ Setting stream to video element');
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
         setIsCameraActive(true);
+        console.log('✅ Camera activated successfully');
+        
+        // Wait for video to be ready
+        videoRef.current.onloadedmetadata = () => {
+          console.log('✅ Video metadata loaded');
+          console.log('✅ Video dimensions:', videoRef.current?.videoWidth, 'x', videoRef.current?.videoHeight);
+        };
+      } else {
+        console.error('❌ videoRef.current is null!');
+        throw new Error('Video element not found');
       }
     } catch (error: any) {
-      console.error('Camera error:', error);
+      console.error('❌ Camera error:', error);
       let errorMessage = 'Tidak dapat mengakses kamera. ';
       
       if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
@@ -597,46 +615,47 @@ export function ImageUploader({
                   </Button>
                 </div>
               </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="relative border-2 border-primary rounded-xl overflow-hidden bg-black">
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    className="w-full h-auto"
-                    style={{ maxHeight: '400px' }}
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={capturePhoto}
-                    disabled={isUploading}
-                    className="flex-1"
-                  >
-                    {isUploading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Memproses...
-                      </>
-                    ) : (
-                      <>
-                        <Camera className="w-4 h-4 mr-2" />
-                        Ambil Foto
-                      </>
-                    )}
-                  </Button>
-                  <Button 
-                    onClick={stopCamera}
-                    variant="outline"
-                    disabled={isUploading}
-                  >
-                    Tutup Kamera
-                  </Button>
-                </div>
+            ) : null}
+            
+            {/* Video element - always rendered but hidden when not active */}
+            <div className={isCameraActive ? 'space-y-4' : 'hidden'}>
+              <div className="relative border-2 border-primary rounded-xl overflow-hidden bg-black">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-auto"
+                  style={{ maxHeight: '400px' }}
+                />
               </div>
-            )}
+              <div className="flex gap-2">
+                <Button 
+                  onClick={capturePhoto}
+                  disabled={isUploading}
+                  className="flex-1"
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Memproses...
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="w-4 h-4 mr-2" />
+                      Ambil Foto
+                    </>
+                  )}
+                </Button>
+                <Button 
+                  onClick={stopCamera}
+                  variant="outline"
+                  disabled={isUploading}
+                >
+                  Tutup Kamera
+                </Button>
+              </div>
+            </div>
           </div>
         </TabsContent>
       </Tabs>

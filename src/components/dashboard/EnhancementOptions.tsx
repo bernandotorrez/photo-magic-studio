@@ -498,14 +498,21 @@ export function EnhancementOptions({
             </Button>
 
             {profile && (
-              <p className="text-xs text-muted-foreground text-center px-2">
-                Sisa token: {(profile.subscription_tokens || 0) + (profile.purchased_tokens || 0)} token
-                {profile.subscription_tokens > 0 && profile.purchased_tokens > 0 && (
-                  <span className="block mt-1">
-                    ({profile.subscription_tokens} bulanan + {profile.purchased_tokens} top-up)
-                  </span>
+              <div className="text-center space-y-1">
+                <p className="text-xs text-muted-foreground px-2">
+                  Sisa token: {(profile.subscription_tokens || 0) + (profile.purchased_tokens || 0)} token
+                  {profile.subscription_tokens > 0 && profile.purchased_tokens > 0 && (
+                    <span className="block mt-1">
+                      ({profile.subscription_tokens} bulanan + {profile.purchased_tokens} top-up)
+                    </span>
+                  )}
+                </p>
+                {isGenerating && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 font-medium px-2">
+                    ⏱️ Proses generate membutuhkan waktu 20 Detik sampai 5 Menit (paling lama) untuk hasil yang Optimal
+                  </p>
                 )}
-              </p>
+              </div>
             )}
           </div>
         </div>
