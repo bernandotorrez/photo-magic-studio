@@ -247,7 +247,7 @@ serve(async (req) => {
     const userEmail = userData?.user?.email;
 
     // Parse request body
-    const { imageUrl, enhancement, classification, watermark, customPose, customFurniture, customPrompt } = await req.json();
+    const { imageUrl, enhancement, classification, watermark, customPose, customFurniture, customPrompt, customMakeup, customHairColor } = await req.json();
     
     if (!imageUrl) {
       return new Response(
@@ -401,6 +401,23 @@ serve(async (req) => {
       const sanitized = sanitizePrompt(customPrompt, 500);
       generatedPrompt += ` Custom styling: ${sanitized}`;
       console.log('Added sanitized custom prompt');
+    }
+    
+    // Add custom makeup if provided (for makeup enhancements with custom colors)
+    if (customMakeup && customMakeup.trim()) {
+      // ✅ SANITIZE CUSTOM MAKEUP (Security Update)
+      const sanitized = sanitizePrompt(customMakeup, 500);
+      generatedPrompt += ` Custom makeup details: ${sanitized}`;
+      console.log('Added sanitized custom makeup prompt');
+    }
+    
+    // Add custom hair color if provided (for hair style enhancements)
+    if (customHairColor && customHairColor.trim()) {
+      // ✅ SANITIZE CUSTOM HAIR COLOR (Security Update)
+      const sanitized = sanitizePrompt(customHairColor, 100);
+      // Make hair color instruction more explicit and strong
+      generatedPrompt += ` IMPORTANT: Change the hair color to ${sanitized}. The hair must be dyed/colored to ${sanitized}. Apply ${sanitized} hair color throughout all the hair.`;
+      console.log('Added sanitized custom hair color:', sanitized);
     }
     
     generatedPrompt += watermarkInstruction;
