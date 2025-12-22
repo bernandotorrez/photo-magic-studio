@@ -14,11 +14,12 @@ import { isDisposableEmail, isValidEmailProvider } from '@/lib/disposable-emails
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Logo } from '@/components/Logo';
+import { PasswordStrengthIndicator } from '@/components/PasswordStrengthIndicator';
+import { strongPasswordSchema } from '@/lib/password-validator';
 
 const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || '';
 
 const emailSchema = z.string().email('Email tidak valid');
-const passwordSchema = z.string().min(6, 'Password minimal 6 karakter');
 const nameSchema = z.string().min(2, 'Nama minimal 2 karakter').optional();
 
 declare global {
@@ -177,9 +178,17 @@ export default function Auth() {
       }
     }
     
-    const passwordResult = passwordSchema.safeParse(password);
-    if (!passwordResult.success) {
-      newErrors.password = passwordResult.error.errors[0].message;
+    // Use strong password validation for signup, simple validation for login
+    if (isSignUp) {
+      const passwordResult = strongPasswordSchema.safeParse(password);
+      if (!passwordResult.success) {
+        newErrors.password = passwordResult.error.errors[0].message;
+      }
+    } else {
+      // For login, just check if password is not empty
+      if (!password || password.length < 6) {
+        newErrors.password = 'Password minimal 6 karakter';
+      }
     }
     
     if (isSignUp && fullName) {
@@ -558,7 +567,7 @@ export default function Auth() {
                       <Input
                         id="register-password"
                         type="password"
-                        placeholder="Minimal 6 karakter"
+                        placeholder="Masukkan password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="pl-10"
@@ -566,6 +575,23 @@ export default function Auth() {
                       />
                     </div>
                     {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+                    
+                    {/* Password Requirements Info */}
+                    {!password && (
+                      <div className="text-xs text-muted-foreground space-y-1 bg-muted/30 p-3 rounded-md">
+                        <p className="font-medium text-foreground mb-1">Password harus mengandung:</p>
+                        <ul className="space-y-0.5 ml-1">
+                          <li>• Minimal 8 karakter</li>
+                          <li>• Minimal 1 huruf besar (A-Z)</li>
+                          <li>• Minimal 1 huruf kecil (a-z)</li>
+                          <li>• Minimal 1 angka (0-9)</li>
+                          <li>• Minimal 1 simbol (!@#$%^&*)</li>
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {/* Password Strength Indicator */}
+                    <PasswordStrengthIndicator password={password} show={password.length > 0} />
                   </div>
 
                   {RECAPTCHA_SITE_KEY && (
