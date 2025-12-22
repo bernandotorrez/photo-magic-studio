@@ -66,6 +66,8 @@ x-api-key: eak_your_api_key_here
 | `classification` | string | No | Klasifikasi produk: `clothing`, `shoes`, `bags`, `accessories`, `jewelry`, `headwear`, `eyewear`, `beauty`, `electronics`, `home`, `sports`, `kids`, `person`, `interior`, `exterior` |
 | `customPose` | string | No | **[NEW]** Deskripsi pose spesifik untuk AI Photographer (hanya untuk classification="person") |
 | `customFurniture` | string | No | **[NEW]** Item furniture spesifik untuk Interior Design (hanya untuk classification="interior", pisahkan dengan koma) |
+| `customMakeup` | string | No | **[NEW]** Custom makeup details untuk Make Up Artist (hanya untuk classification="beauty", contoh: "red lipstick, smokey eyes, pink blush") |
+| `customHairColor` | string | No | **[NEW]** Custom hair color untuk Hair Style (hanya untuk classification="beauty", contoh: "blonde", "brown", "red", "#FF5733") |
 | `watermark` | object | No | Konfigurasi watermark |
 | `watermark.type` | string | No | Tipe watermark: "none", "text", atau "logo" |
 | `watermark.text` | string | No | Text watermark (jika type = "text") |
@@ -474,6 +476,32 @@ curl -X POST https://[your-project-id].supabase.co/functions/v1/api-generate \
   }'
 ```
 
+**Example 6: Make Up Artist with Custom Colors**
+```bash
+curl -X POST https://[your-project-id].supabase.co/functions/v1/api-generate \
+  -H "Content-Type: application/json" \
+  -H "x-api-key": "eak_your_api_key_here" \
+  -d '{
+    "imageUrl": "https://example.com/portrait.jpg",
+    "enhancement": "💋 Bold Red Lips",
+    "classification": "beauty",
+    "customMakeup": "deep burgundy red lipstick with matte finish, subtle bronze eyeshadow"
+  }'
+```
+
+**Example 7: Hair Style with Custom Color**
+```bash
+curl -X POST https://[your-project-id].supabase.co/functions/v1/api-generate \
+  -H "Content-Type: application/json" \
+  -H "x-api-key": "eak_your_api_key_here" \
+  -d '{
+    "imageUrl": "https://example.com/portrait.jpg",
+    "enhancement": "✂️ Long Wavy Hair",
+    "classification": "beauty",
+    "customHairColor": "burgundy red"
+  }'
+```
+
 ### JavaScript (Fetch)
 
 **Example 1: Fashion Product**
@@ -570,6 +598,46 @@ const response = await fetch('https://[your-project-id].supabase.co/functions/v1
     enhancement: '🛋️ Virtual Staging (Tambah Furniture)',
     classification: 'interior',
     customFurniture: 'sofa L-shape, coffee table, floor lamp, wall art, indoor plants'
+  })
+});
+
+const data = await response.json();
+console.log('Generated:', data.generatedImageUrl);
+```
+
+**Example 6: Make Up Artist with Custom Colors**
+```javascript
+const response = await fetch('https://[your-project-id].supabase.co/functions/v1/api-generate', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': 'eak_your_api_key_here'
+  },
+  body: JSON.stringify({
+    imageUrl: 'https://example.com/portrait.jpg',
+    enhancement: '💄 Glamorous Evening Makeup',
+    classification: 'beauty',
+    customMakeup: 'rose gold eyeshadow, nude pink lipstick, peachy blush'
+  })
+});
+
+const data = await response.json();
+console.log('Generated:', data.generatedImageUrl);
+```
+
+**Example 7: Hair Style with Custom Color**
+```javascript
+const response = await fetch('https://[your-project-id].supabase.co/functions/v1/api-generate', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': 'eak_your_api_key_here'
+  },
+  body: JSON.stringify({
+    imageUrl: 'https://example.com/portrait.jpg',
+    enhancement: '✂️ Long Wavy Hair',
+    classification: 'beauty',
+    customHairColor: 'platinum blonde'
   })
 });
 

@@ -41,6 +41,8 @@ interface EnhancementOptionsProps {
   isGenerating: boolean;
   setIsGenerating: (value: boolean) => void;
   profile: Profile | null;
+  showHairColorPicker?: boolean; // NEW: Show hair color picker
+  showMakeupDetails?: boolean; // NEW: Show makeup details
 }
 
 type WatermarkType = 'none' | 'text' | 'logo';
@@ -57,6 +59,8 @@ export function EnhancementOptions({
   isGenerating,
   setIsGenerating,
   profile,
+  showHairColorPicker = false,
+  showMakeupDetails = false,
 }: EnhancementOptionsProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -70,6 +74,8 @@ export function EnhancementOptions({
   // Custom input state
   const [customPose, setCustomPose] = useState('');
   const [customFurniture, setCustomFurniture] = useState('');
+  const [customMakeup, setCustomMakeup] = useState('');
+  const [customHairColor, setCustomHairColor] = useState('');
   
   // Generated result state
   const [generatedResult, setGeneratedResult] = useState<GeneratedResult | null>(null);
@@ -165,6 +171,8 @@ export function EnhancementOptions({
           ...(isNewFormat ? { enhancementIds } : { enhancement: combinedEnhancement }),
           customPose: customPose || undefined,
           customFurniture: customFurniture || undefined,
+          customMakeup: customMakeup || undefined,
+          customHairColor: customHairColor || undefined,
           watermark: watermarkType !== 'none' ? {
             type: watermarkType,
             text: watermarkType === 'text' ? watermarkText : undefined,
@@ -293,10 +301,12 @@ export function EnhancementOptions({
           </div>
 
           {/* Custom Input Options */}
-          {(classification === 'person' || classification === 'interior') && (
+          {(classification === 'person' || classification === 'interior' || (classification === 'beauty' && (showHairColorPicker || showMakeupDetails))) && (
             <div className="space-y-3 sm:space-y-4 p-3 sm:p-4 rounded-xl border border-border bg-muted/20">
               <h3 className="font-medium text-xs sm:text-sm">
-                {classification === 'person' ? 'Custom Pose (Opsional)' : 'Custom Furniture Items (Opsional)'}
+                {classification === 'person' && 'Custom Pose (Opsional)'}
+                {classification === 'interior' && 'Custom Furniture Items (Opsional)'}
+                {classification === 'beauty' && 'Custom Options (Opsional)'}
               </h3>
               
               {classification === 'person' && (
@@ -329,6 +339,56 @@ export function EnhancementOptions({
                     Kosongkan untuk furniture otomatis. Isi untuk menentukan item furniture spesifik (pisahkan dengan koma).
                   </p>
                 </div>
+              )}
+              
+              {classification === 'beauty' && (
+                <>
+                  {/* Hair Color Picker - Only show if enabled */}
+                  {showHairColorPicker && (
+                    <div className="space-y-2">
+                      <Label htmlFor="custom-hair-color">✂️ Custom Hair Color (Warna Rambut)</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="custom-hair-color"
+                          type="color"
+                          value={customHairColor || '#000000'}
+                          onChange={(e) => setCustomHairColor(e.target.value)}
+                          disabled={isGenerating}
+                          className="w-20 h-10 cursor-pointer"
+                        />
+                        <Input
+                          placeholder="atau ketik: blonde, brown, red, black, etc"
+                          value={customHairColor}
+                          onChange={(e) => setCustomHairColor(e.target.value)}
+                          disabled={isGenerating}
+                          className="flex-1"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        ✂️ Pilih warna dari color picker atau ketik nama warna (blonde, brown, red, black, burgundy, platinum, etc). 
+                        Kosongkan untuk warna default.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Makeup Details - Only show if enabled */}
+                  {showMakeupDetails && (
+                    <div className="space-y-2">
+                      <Label htmlFor="custom-makeup">💄 Custom Makeup Details</Label>
+                      <Input
+                        id="custom-makeup"
+                        placeholder="Contoh: red lipstick, smokey eyes, pink blush"
+                        value={customMakeup}
+                        onChange={(e) => setCustomMakeup(e.target.value)}
+                        disabled={isGenerating}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        💄 Tentukan warna lipstik (red, pink, nude), style eyeshadow (smokey, natural, glitter), 
+                        warna blush (pink, peach, coral), atau detail makeup lainnya.
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}

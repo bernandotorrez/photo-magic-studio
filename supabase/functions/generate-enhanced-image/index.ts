@@ -43,7 +43,7 @@ serve(async (req) => {
   }
 
   try {
-    const { imageUrl, originalImagePath, imagePath, enhancement, enhancements, enhancementIds, classification, watermark, customPose, customFurniture, customPrompt, debugMode } = await req.json();
+    const { imageUrl, originalImagePath, imagePath, enhancement, enhancements, enhancementIds, classification, watermark, customPose, customFurniture, customPrompt, customMakeup, customHairColor, debugMode } = await req.json();
     
     // Get user ID and email from authorization header
     const authHeader = req.headers.get('authorization');
@@ -235,6 +235,18 @@ serve(async (req) => {
     if (customPrompt && customPrompt.trim()) {
       prompts.push(`Custom styling request: ${customPrompt.trim()}`);
       console.log('Added custom prompt:', customPrompt.trim());
+    }
+    
+    // Add custom makeup if provided
+    if (customMakeup && customMakeup.trim()) {
+      prompts.push(`Custom makeup details: ${customMakeup.trim()}`);
+      console.log('Added custom makeup:', customMakeup.trim());
+    }
+    
+    // Add custom hair color if provided
+    if (customHairColor && customHairColor.trim()) {
+      prompts.push(`IMPORTANT: Change the hair color to ${customHairColor.trim()}. The hair must be dyed/colored to ${customHairColor.trim()}. Apply ${customHairColor.trim()} hair color throughout all the hair.`);
+      console.log('Added custom hair color:', customHairColor.trim());
     }
     
     // Combine multiple prompts

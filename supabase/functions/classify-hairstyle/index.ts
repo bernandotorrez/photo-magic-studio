@@ -60,12 +60,11 @@ serve(async (req) => {
       );
     }
 
-    console.log('Classifying beauty image for gender detection:', imageUrl);
+    console.log('Classifying hair style image for gender detection:', imageUrl);
 
-    let gender = 'female'; // Default to female for beauty
+    let gender = 'female'; // Default to female
     let detectedLabel = 'default';
     let classificationSuccess = false;
-    let subcategory = 'makeup'; // Default subcategory
     
     // Try to detect gender using Hugging Face
     try {
@@ -120,14 +119,14 @@ serve(async (req) => {
       console.log('Classification error, using default:', apiError);
     }
 
-    console.log('Final gender:', gender, '| Subcategory:', subcategory, '| Classification success:', classificationSuccess);
+    console.log('Final gender:', gender, '| Classification success:', classificationSuccess);
 
     // Get Supabase client
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
     const supabase = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!);
 
-    // Query enhancements from database for beauty category
+    // Query enhancements from database for hair style category
     const { data: beautyCategory } = await supabase
       .from('image_categories')
       .select('id')
@@ -141,7 +140,9 @@ serve(async (req) => {
       );
     }
 
-    // Get all enhancements for beauty category
+    // Get hair style enhancements based on detected gender
+    const categoryFilter = gender === 'male' ? 'hair_style_male' : 'hair_style_female';
+
     const { data: allEnhancements, error: enhError } = await supabase
       .from('category_enhancements')
       .select(`
@@ -166,55 +167,35 @@ serve(async (req) => {
       );
     }
 
-    // Filter enhancements based on detected gender and organize by subcategory
-    const hairStyleMale: any[] = [];
-    const hairStyleFemale: any[] = [];
-    const makeup: any[] = [];
+    // Filter only hair style enhancements for detected gender
+    const hairStyleOptions: any[] = [];
 
     allEnhancements?.forEach((item: any) => {
       const enh = item.enhancement_prompts;
       if (!enh) return;
 
-      const enhancementData = {
-        id: enh.id,
-        enhancement_type: enh.enhancement_type,
-        display_name: enh.display_name,
-        description: enh.description,
-        supports_custom_prompt: enh.supports_custom_prompt || false,
-      };
-
-      if (enh.category === 'hair_style_male') {
-        hairStyleMale.push(enhancementData);
-      } else if (enh.category === 'hair_style_female') {
-        hairStyleFemale.push(enhancementData);
-      } else if (enh.category === 'makeup') {
-        makeup.push(enhancementData);
+      if (enh.category === categoryFilter) {
+        hairStyleOptions.push({
+          id: enh.id,
+          enhancement_type: enh.enhancement_type,
+          display_name: enh.display_name,
+          description: enh.description,
+          supports_custom_prompt: enh.supports_custom_prompt || false,
+        });
       }
     });
 
-    // IMPORTANT: Return hair_style based on detected gender
-    const hairStyleForGender = gender === 'male' ? hairStyleMale : hairStyleFemale;
-
-    // Prepare response based on detected gender
+    // Prepare response
     const response = {
-      classification: 'beauty',
+      classification: gender, // Return gender as classification (male or female)
       gender: gender,
       detectedLabel: detectedLabel,
       classificationSuccess: classificationSuccess,
-      subcategories: {
-        hair_style: hairStyleForGender, // Only return hair styles for detected gender
-        makeup: makeup, // Makeup is gender-neutral
-      },
-      // For backward compatibility, provide flat list of relevant enhancements
-      enhancementOptions: [
-        ...hairStyleForGender,
-        ...makeup,
-      ],
+      enhancementOptions: hairStyleOptions,
     };
 
-    console.log(`✅ Found ${hairStyleMale.length} male hair styles, ${hairStyleFemale.length} female hair styles, ${makeup.length} makeup options`);
-    console.log(`✅ Detected gender: ${gender} - Returning ${hairStyleForGender.length} hair styles for ${gender}`);
-    console.log(`✅ Total enhancements in response: ${response.enhancementOptions.length} (${hairStyleForGender.length} hair + ${makeup.length} makeup)`);
+    console.log(`✅ Found ${hairStyleOptions.length} hair styles for ${gender}`);
+    console.log(`✅ Classification: ${gender}`);
 
     return new Response(
       JSON.stringify(response),
@@ -222,7 +203,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in classify-beauty:', error);
+    console.error('Error in classify-hairstyle:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unexpected error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
