@@ -100,10 +100,31 @@ export function EnhancementOptions({
   });
 
   const handleToggleEnhancement = (enhancementId: string) => {
-    if (selectedEnhancements.includes(enhancementId)) {
-      onSelect(selectedEnhancements.filter(e => e !== enhancementId));
+    // Check if this is a hair style enhancement (single selection only)
+    const isHairStyle = classification === 'beauty' && 
+      (enhancementId.toLowerCase().includes('hair_style') || 
+       enhancementId.toLowerCase().includes('hairstyle'));
+    
+    if (isHairStyle) {
+      // For hair style: single selection only
+      if (selectedEnhancements.includes(enhancementId)) {
+        // Deselect if already selected
+        onSelect(selectedEnhancements.filter(e => e !== enhancementId));
+      } else {
+        // Replace any existing hair style selection with this one
+        const otherSelections = selectedEnhancements.filter(e => 
+          !e.toLowerCase().includes('hair_style') && 
+          !e.toLowerCase().includes('hairstyle')
+        );
+        onSelect([...otherSelections, enhancementId]);
+      }
     } else {
-      onSelect([...selectedEnhancements, enhancementId]);
+      // For other enhancements: multiple selection
+      if (selectedEnhancements.includes(enhancementId)) {
+        onSelect(selectedEnhancements.filter(e => e !== enhancementId));
+      } else {
+        onSelect([...selectedEnhancements, enhancementId]);
+      }
     }
   };
 
