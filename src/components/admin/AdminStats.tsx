@@ -12,9 +12,16 @@ interface Statistics {
   generations_today: number;
 }
 
+interface TierUserCount {
+  tier_id: string;
+  tier_name: string;
+  user_count: number;
+}
+
 export function AdminStats() {
   const [stats, setStats] = useState<Statistics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tierCounts, setTierCounts] = useState<TierUserCount[]>([]);
 
   useEffect(() => {
     fetchStatistics();
@@ -22,6 +29,7 @@ export function AdminStats() {
 
   const fetchStatistics = async () => {
     try {
+      // Fetch basic statistics
       const { data, error } = await supabase.rpc('get_user_statistics');
       
       if (error) throw error;
@@ -29,10 +37,67 @@ export function AdminStats() {
       if (data && data.length > 0) {
         setStats(data[0]);
       }
+
+      // Fetch subscription tiers and count users per tier
+      await fetchTierCounts();
     } catch (error) {
       console.error('Error fetching statistics:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTierCounts = async () => {
+    try {
+      console.log('Fetching subscription tiers...');
+      
+      // Get all subscription tiers
+      const { data: tiers, error: tiersError } = await supabase
+        .from('subscription_tiers' as any)
+        .select('tier_id, tier_name')
+        .eq('is_active', true)
+        .order('display_order');
+
+      console.log('Tiers data:', tiers);
+      console.log('Tiers error:', tiersError);
+
+      if (tiersError) {
+        console.error('Error fetching tiers:', tiersError);
+        return;
+      }
+
+      if (!tiers || tiers.length === 0) {
+        console.log('No tiers found, setting empty array');
+        setTierCounts([]);
+        return;
+      }
+
+      // Count users for each tier
+      const counts: TierUserCount[] = [];
+      for (const tier of tiers) {
+        const tierData = tier as any;
+        console.log(`Counting users for tier: ${tierData.tier_name} (${tierData.tier_id})`);
+        
+        const { count, error: countError } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('subscription_plan', tierData.tier_id);
+
+        console.log(`  Count: ${count}, Error:`, countError);
+
+        if (!countError) {
+          counts.push({
+            tier_id: tierData.tier_id,
+            tier_name: tierData.tier_name,
+            user_count: count || 0
+          });
+        }
+      }
+
+      console.log('Final tier counts:', counts);
+      setTierCounts(counts);
+    } catch (error) {
+      console.error('Error fetching tier counts:', error);
     }
   };
 
@@ -55,12 +120,18 @@ export function AdminStats() {
 
   if (!stats) return null;
 
+  // Generate tier description dynamically from tierCounts
+  // If tierCounts is empty (fetch failed), show loading message instead of hardcoded fallback
+  const tierDescription = tierCounts.length > 0
+    ? tierCounts.map(t => `${t.tier_name}: ${t.user_count}`).join(' | ')
+    : 'Loading tier data...';
+
   const statCards = [
     {
       title: 'Total Users',
       value: stats.total_users,
       icon: Users,
-      description: `Free: ${stats.free_users} | Basic: ${stats.basic_users} | Pro: ${stats.pro_users}`,
+      description: tierDescription,
     },
     {
       title: 'Total Generations',
