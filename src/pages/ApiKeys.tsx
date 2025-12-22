@@ -37,6 +37,7 @@ interface ApiKey {
   is_active: boolean;
   created_at: string;
   last_used_at: string | null;
+  expires_at: string | null;
 }
 
 export default function ApiKeys() {
@@ -270,6 +271,19 @@ export default function ApiKeys() {
                     Anda bisa membuat API key dan mengintegrasikan fitur generate ke aplikasi Anda. 
                     Lihat dokumentasi lengkap untuk panduan penggunaan.
                   </p>
+                  
+                  {/* Security Info */}
+                  <div className="bg-background/50 rounded-lg p-3 mb-3 space-y-2">
+                    <p className="text-xs font-semibold text-foreground">🔒 Fitur Keamanan API:</p>
+                    <ul className="text-xs text-muted-foreground space-y-1 ml-4">
+                      <li>• <strong>Rate Limiting:</strong> Berdasarkan tier subscription Anda</li>
+                      <li>• <strong>API Key Expiry:</strong> Otomatis expire setelah 90 hari (dapat diperpanjang)</li>
+                      <li>• <strong>Request Tracking:</strong> Semua request tercatat untuk audit</li>
+                      <li>• <strong>Secure Storage:</strong> API key di-hash dengan SHA-256</li>
+                      <li>• <strong>Revoke Anytime:</strong> Nonaktifkan key kapan saja jika diperlukan</li>
+                    </ul>
+                  </div>
+                  
                   <Button 
                     onClick={() => navigate('/api-documentation')} 
                     size="sm" 

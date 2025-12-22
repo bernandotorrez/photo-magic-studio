@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Coins, CreditCard, Upload, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { validateFile, ALLOWED_MIME_TYPES, MAX_FILE_SIZES, formatFileSize } from '@/lib/file-validator';
+import { useToast } from '@/hooks/use-toast';
 
 interface TokenPricing {
   min_tokens: number;
@@ -20,6 +22,7 @@ interface TokenPricing {
 
 export default function TopUp() {
   const navigate = useNavigate();
+  const { toast: showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [tokenAmount, setTokenAmount] = useState(50);
   const [pricing, setPricing] = useState<TokenPricing[]>([]);
@@ -123,23 +126,28 @@ export default function TopUp() {
     }
   };
 
-  const validateAndSetFile = (file: File) => {
-    // Check file type
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
-    if (!validTypes.includes(file.type)) {
-      toast.error('File harus berupa gambar (JPG, PNG, WEBP) atau PDF');
-      return;
-    }
+  const validateAndSetFile = async (file: File) => {
+    // Use comprehensive file validation
+    const validation = await validateFile(file, {
+      allowedTypes: ALLOWED_MIME_TYPES.images, // Only images for payment proof
+      maxSize: MAX_FILE_SIZES.paymentProof,
+      checkContent: true, // Verify file content matches declared type
+    });
 
-    // Check file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      toast.error('Ukuran file maksimal 5MB');
+    if (!validation.valid) {
+      showToast({
+        title: 'File Tidak Valid',
+        description: validation.error,
+        variant: 'destructive',
+      });
       return;
     }
 
     setPaymentProof(file);
-    toast.success('File berhasil dipilih');
+    showToast({
+      title: 'File Berhasil Dipilih',
+      description: `${file.name} (${formatFileSize(file.size)})`,
+    });
   };
 
   const handleDragOver = (e: React.DragEvent) => {

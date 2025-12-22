@@ -1,19 +1,20 @@
+// ============================================
+// CREATE-API-KEY WITH INLINE SECURITY UTILITIES
+// Copy-paste seluruh file ini ke Supabase Dashboard
+// Function name: create-api-key
+// ============================================
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // ============================================
-// INLINE UTILITIES (Security Updates)
+// INLINE UTILITIES - CORS (Private API)
 // ============================================
-
-// Whitelist of allowed origins for private APIs
 const ALLOWED_ORIGINS = [
   'https://pixel-nova-ai.vercel.app',
   'https://ai-magic-photo.lovable.app',
-  'http://localhost:8080',
-  'http://localhost:5173',
 ];
 
-// CORS Headers (Private API - Whitelist only)
 function getPrivateCorsHeaders(requestOrigin: string | null): Record<string, string> {
   const isAllowed = requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin);
   
@@ -35,7 +36,7 @@ function getPrivateCorsHeaders(requestOrigin: string | null): Record<string, str
 }
 
 // ============================================
-// END INLINE UTILITIES
+// MAIN FUNCTION
 // ============================================
 
 interface CreateApiKeyRequest {
@@ -54,12 +55,11 @@ function generateApiKey(): string {
 }
 
 serve(async (req) => {
-  // ✅ GET ORIGIN FOR CORS CHECK
   const origin = req.headers.get('Origin');
   const corsHeaders = getPrivateCorsHeaders(origin);
   
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   try {
@@ -162,6 +162,7 @@ serve(async (req) => {
   } catch (error: unknown) {
     console.error("Error in create-api-key:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const corsHeaders = getPrivateCorsHeaders(null);
     return new Response(
       JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

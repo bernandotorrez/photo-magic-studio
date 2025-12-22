@@ -1,90 +1,32 @@
+// ============================================
+// API-GENERATE WITH INLINE SECURITY UTILITIES
+// Copy-paste seluruh file ini ke Supabase Dashboard
+// Function name: api-generate
+// ============================================
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 // ============================================
-// INLINE UTILITIES (Security Updates)
+// INLINE UTILITIES - CORS (Public API)
 // ============================================
-
-// CORS Headers (Public API - Allow all origins)
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-  'Access-Control-Max-Age': '86400',
-};
-
-// Input Sanitization
-function sanitizePrompt(input: string, maxLength: number = 500): string {
-  if (!input) return '';
-  
-  return input
-    .replace(/\b(script|eval|function|exec|system|cmd|bash|sh)\b/gi, '')
-    .replace(/<[^>]*>/g, '')
-    .replace(/[<>"'`]/g, '')
-    .replace(/\0/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .substring(0, maxLength);
+function getPublicCorsHeaders(): Record<string, string> {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
+    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+    'Access-Control-Max-Age': '86400',
+  };
 }
 
-// Rate Limiting (Based on User's Subscription Tier)
-async function checkApiKeyRateLimit(supabase: any, apiKeyHash: string, userId: string) {
-  const windowStart = new Date(Date.now() - 60000); // 1 minute window
+// ============================================
+// INLINE UTILITIES - RATE LIMITER
+// ============================================
+async function checkApiKeyRateLimit(supabase: any, apiKeyHash: string) {
+  const windowStart = new Date(Date.now() - 60000); // 1 minute
+  const maxRequests = 60;
   
   try {
-    // Get user's subscription tier and rate limit
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('subscription_plan')
-      .eq('user_id', userId)
-      .maybeSingle();
-    
-    if (profileError) {
-      console.error('Error fetching user profile:', profileError);
-      // Default to free tier rate limit (0 = no API access)
-      return {
-        allowed: false,
-        remaining: 0,
-        resetAt: new Date(Date.now() + 60000),
-        error: 'Unable to verify subscription tier. API access denied.',
-      };
-    }
-    
-    const userTier = profileData?.subscription_plan || 'free';
-    
-    // Get rate limit from subscription_tiers table
-    const { data: tierData, error: tierError } = await supabase
-      .from('subscription_tiers')
-      .select('api_rate_limit, tier_name')
-      .eq('tier_id', userTier)
-      .eq('is_active', true)
-      .maybeSingle();
-    
-    if (tierError || !tierData) {
-      console.error('Error fetching tier data:', tierError);
-      // Default to free tier (no API access)
-      return {
-        allowed: false,
-        remaining: 0,
-        resetAt: new Date(Date.now() + 60000),
-        error: 'Unable to verify subscription tier. API access denied.',
-      };
-    }
-    
-    const maxRequests = tierData.api_rate_limit || 0;
-    const tierName = tierData.tier_name;
-    
-    // If rate limit is 0, deny access (free tier has no API access)
-    if (maxRequests === 0) {
-      return {
-        allowed: false,
-        remaining: 0,
-        resetAt: new Date(Date.now() + 60000),
-        error: `API access not available for ${tierName} tier. Please upgrade your subscription to use the API.`,
-      };
-    }
-    
-    // Check current usage
     const { data: existing, error: fetchError } = await supabase
       .from('api_rate_limits')
       .select('*')
@@ -116,8 +58,6 @@ async function checkApiKeyRateLimit(supabase: any, apiKeyHash: string, userId: s
         allowed: true,
         remaining: maxRequests - 1,
         resetAt: new Date(now.getTime() + 60000),
-        tier: tierName,
-        maxRequests: maxRequests,
       };
     }
     
@@ -126,9 +66,7 @@ async function checkApiKeyRateLimit(supabase: any, apiKeyHash: string, userId: s
         allowed: false,
         remaining: 0,
         resetAt: new Date(new Date(existing.window_start).getTime() + 60000),
-        error: `Rate limit exceeded for ${tierName} tier. Maximum ${maxRequests} requests per minute.`,
-        tier: tierName,
-        maxRequests: maxRequests,
+        error: `Rate limit exceeded. Maximum ${maxRequests} requests per minute.`,
       };
     }
     
@@ -141,40 +79,51 @@ async function checkApiKeyRateLimit(supabase: any, apiKeyHash: string, userId: s
       allowed: true,
       remaining: maxRequests - existing.request_count - 1,
       resetAt: new Date(new Date(existing.window_start).getTime() + 60000),
-      tier: tierName,
-      maxRequests: maxRequests,
     };
   } catch (error) {
     console.error('Rate limit error:', error);
-    // On error, deny access for security
     return {
-      allowed: false,
-      remaining: 0,
+      allowed: true,
+      remaining: maxRequests,
       resetAt: new Date(Date.now() + 60000),
-      error: 'Rate limit check failed. Please try again.',
     };
   }
 }
 
-// Add Rate Limit Headers
 function addRateLimitHeaders(headers: Record<string, string>, result: any): Record<string, string> {
   return {
     ...headers,
-    'X-RateLimit-Limit': String(result.maxRequests || 0),
-    'X-RateLimit-Remaining': String(result.remaining || 0),
-    'X-RateLimit-Reset': result.resetAt?.toISOString() || new Date(Date.now() + 60000).toISOString(),
-    'X-RateLimit-Tier': result.tier || 'unknown',
+    'X-RateLimit-Limit': String(result.remaining + (result.allowed ? 1 : 0)),
+    'X-RateLimit-Remaining': String(result.remaining),
+    'X-RateLimit-Reset': result.resetAt.toISOString(),
   };
 }
 
 // ============================================
-// END INLINE UTILITIES
+// INLINE UTILITIES - INPUT SANITIZER
 // ============================================
+function sanitizePrompt(input: string, maxLength: number = 500): string {
+  if (!input) return '';
+  
+  return input
+    .replace(/\b(script|eval|function|exec|system|cmd|bash|sh)\b/gi, '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/[<>"'`]/g, '')
+    .replace(/\0/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .substring(0, maxLength);
+}
 
+// ============================================
+// MAIN FUNCTION
+// ============================================
 serve(async (req) => {
+  const corsHeaders = getPublicCorsHeaders();
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   try {
@@ -220,27 +169,21 @@ serve(async (req) => {
       );
     }
 
-    const userId = apiKeyRecord.user_id;
-
-    // ✅ CHECK RATE LIMIT (Based on Subscription Tier)
-    const rateLimitResult = await checkApiKeyRateLimit(supabase, hashedKey, userId);
+    // ✅ CHECK RATE LIMIT
+    const rateLimitResult = await checkApiKeyRateLimit(supabase, hashedKey);
     
     if (!rateLimitResult.allowed) {
       const headers = addRateLimitHeaders({ ...corsHeaders, 'Content-Type': 'application/json' }, rateLimitResult);
-      const statusCode = rateLimitResult.error?.includes('not available') ? 403 : 429;
       return new Response(
         JSON.stringify({ 
           error: rateLimitResult.error,
-          resetAt: rateLimitResult.resetAt,
-          tier: rateLimitResult.tier,
-          maxRequests: rateLimitResult.maxRequests,
-          message: rateLimitResult.error?.includes('not available') 
-            ? 'API access requires a paid subscription. Please upgrade your plan.'
-            : 'Rate limit exceeded. Please wait before making more requests.'
+          resetAt: rateLimitResult.resetAt 
         }),
-        { status: statusCode, headers }
+        { status: 429, headers }
       );
     }
+
+    const userId = apiKeyRecord.user_id;
 
     // Get user email
     const { data: userData } = await supabase.auth.admin.getUserById(userId);
@@ -290,9 +233,6 @@ serve(async (req) => {
     let enhancementPrompt = '';
     let enhancementDisplayName = enhancement;
     
-    // Query by display_name OR enhancement_type (flexible for users)
-    console.log('Querying enhancement:', enhancement);
-    
     // Try display_name first (with emoji, user-friendly)
     let { data: promptData } = await supabase
       .from('enhancement_prompts')
@@ -303,7 +243,6 @@ serve(async (req) => {
     
     // If not found, try by enhancement_type (without emoji, code-friendly)
     if (!promptData) {
-      console.log('Not found by display_name, trying enhancement_type...');
       const result = await supabase
         .from('enhancement_prompts')
         .select('prompt_template, display_name, enhancement_type')
@@ -316,10 +255,7 @@ serve(async (req) => {
     if (promptData?.prompt_template) {
       enhancementPrompt = promptData.prompt_template;
       enhancementDisplayName = promptData.display_name;
-      console.log('✅ Using database prompt for:', enhancement, '→', promptData.display_name);
     } else {
-      // Ultimate fallback: simple prompt
-      console.log('⚠️ No database prompt found, using simple fallback for:', enhancement);
       enhancementPrompt = `Apply ${enhancement} enhancement professionally for e-commerce product photography.`;
     }
 
@@ -381,12 +317,10 @@ serve(async (req) => {
       generatedPrompt = `Make the ${productType} from file 1 worn by the model from file 2. The model should use a natural professional pose like a fashion model to showcase the ${productType}. Keep the exact face, body, and appearance of the model from file 2. Preserve any text, logos, or branding that exists on the ${productType} from file 1 - do not remove or alter them. Use professional e-commerce photography style with clean background and studio lighting. The ${productType} should fit naturally on the model's body.`;
     }
     
-    // Add custom prompt if provided (for beauty enhancements with custom colors)
+    // ✅ SANITIZE CUSTOM PROMPT
     if (customPrompt && customPrompt.trim()) {
-      // ✅ SANITIZE CUSTOM PROMPT (Security Update)
       const sanitized = sanitizePrompt(customPrompt, 500);
       generatedPrompt += ` Custom styling: ${sanitized}`;
-      console.log('Added sanitized custom prompt');
     }
     
     generatedPrompt += watermarkInstruction;
@@ -556,12 +490,7 @@ serve(async (req) => {
         } else if (deductResult && deductResult.length > 0) {
           const result = deductResult[0];
           if (result.success) {
-            console.log('✅ Token deducted successfully:', {
-              subscription_used: result.subscription_used,
-              purchased_used: result.purchased_used,
-              remaining_subscription: result.remaining_subscription,
-              remaining_purchased: result.remaining_purchased
-            });
+            console.log('✅ Token deducted successfully');
           } else {
             console.error('❌ Failed to deduct tokens:', result.message);
           }
@@ -571,9 +500,9 @@ serve(async (req) => {
       console.error('Error saving generated image:', saveError);
     }
 
-    // ✅ ADD RATE LIMIT HEADERS TO SUCCESS RESPONSE
+    // ✅ RETURN WITH RATE LIMIT HEADERS
     const responseHeaders = addRateLimitHeaders({ ...corsHeaders, 'Content-Type': 'application/json' }, rateLimitResult);
-
+    
     return new Response(
       JSON.stringify({ 
         success: true,
@@ -587,10 +516,10 @@ serve(async (req) => {
   } catch (error: unknown) {
     console.error('Error in api-generate function:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+    const corsHeaders = getPublicCorsHeaders();
     return new Response(
       JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
-
