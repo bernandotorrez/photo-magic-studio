@@ -1,12 +1,42 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// ============================================
+// INLINE CORS UTILITIES (Private API)
+// ============================================
+const ALLOWED_ORIGINS = [
+  'https://pixel-nova-ai.vercel.app',
+  'https://ai-magic-photo.lovable.app',
+  'http://localhost:8080',
+  'http://localhost:5173',
+];
+
+function getPrivateCorsHeaders(requestOrigin: string | null): Record<string, string> {
+  const isAllowed = requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin);
+  
+  if (isAllowed) {
+    return {
+      'Access-Control-Allow-Origin': requestOrigin,
+      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Max-Age': '86400',
+    };
+  }
+  
+  return {
+    'Access-Control-Allow-Origin': ALLOWED_ORIGINS[0],
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  };
+}
+// ============================================
 
 serve(async (req) => {
+  // ✅ GET ORIGIN FOR CORS CHECK
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getPrivateCorsHeaders(origin);
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -49,8 +79,8 @@ serve(async (req) => {
 
       console.log('Image fetched, size:', imageBuffer.byteLength, 'bytes');
 
-      // Use Hugging Face Vision Transformer for classification
-      const response = await fetch('https://router.huggingface.co/hf-inference/models/google/vit-base-patch16-224', {
+      // Use specialized gender classification model (96% accuracy)
+      const response = await fetch('https://router.huggingface.co/hf-inference/models/rizvandwiki/gender-classification', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${HUGGING_FACE_API_KEY}`,
@@ -66,32 +96,21 @@ serve(async (req) => {
         console.log('Hugging Face response:', JSON.stringify(data));
         
         if (Array.isArray(data) && data.length > 0) {
-          const topLabel = data[0].label.toLowerCase();
-          detectedLabel = topLabel;
+          // Model returns: [{ label: "male", score: 0.99 }, { label: "female", score: 0.01 }]
+          const topPrediction = data[0];
+          detectedLabel = topPrediction.label.toLowerCase();
           classificationSuccess = true;
           
-          console.log('Top label detected:', topLabel);
+          console.log('Gender prediction:', topPrediction.label, 'with confidence:', topPrediction.score);
           
-          // Detect gender from labels
-          if (topLabel.includes('man') || topLabel.includes('male') || topLabel.includes('boy') || 
-              topLabel.includes('gentleman') || topLabel.includes('guy') || topLabel.includes('beard') ||
-              topLabel.includes('mustache') || topLabel.includes('suit') || topLabel.includes('tie')) {
+          // Direct gender assignment from model
+          if (detectedLabel === 'male') {
             gender = 'male';
-          } else if (topLabel.includes('woman') || topLabel.includes('female') || topLabel.includes('girl') || 
-                     topLabel.includes('lady') || topLabel.includes('dress') || topLabel.includes('makeup') ||
-                     topLabel.includes('lipstick') || topLabel.includes('cosmetic')) {
+          } else if (detectedLabel === 'female') {
             gender = 'female';
           }
           
-          // Detect if it's more about hair or makeup
-          if (topLabel.includes('hair') || topLabel.includes('hairstyle') || topLabel.includes('haircut') ||
-              topLabel.includes('braid') || topLabel.includes('ponytail') || topLabel.includes('bun')) {
-            subcategory = gender === 'male' ? 'hair_style_male' : 'hair_style_female';
-          } else {
-            subcategory = 'makeup'; // Default to makeup
-          }
-          
-          console.log('Detected gender:', gender, '| Subcategory:', subcategory);
+          console.log('✅ Gender detected with high confidence:', gender, `(${(topPrediction.score * 100).toFixed(1)}%)`);
         }
       } else {
         const errorText = await response.text();

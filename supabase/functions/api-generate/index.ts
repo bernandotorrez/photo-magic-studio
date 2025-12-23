@@ -1,10 +1,175 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
+// ============================================
+// INLINE UTILITIES (Security Updates)
+// ============================================
+
+// CORS Headers (Public API - Allow all origins)
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  'Access-Control-Max-Age': '86400',
 };
+
+// Input Sanitization
+function sanitizePrompt(input: string, maxLength: number = 500): string {
+  if (!input) return '';
+  
+  return input
+    .replace(/\b(script|eval|function|exec|system|cmd|bash|sh)\b/gi, '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/[<>"'`]/g, '')
+    .replace(/\0/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .substring(0, maxLength);
+}
+
+// Rate Limiting (Based on User's Subscription Tier)
+async function checkApiKeyRateLimit(supabase: any, apiKeyHash: string, userId: string) {
+  const windowStart = new Date(Date.now() - 60000); // 1 minute window
+  
+  try {
+    // Get user's subscription tier and rate limit
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('subscription_plan')
+      .eq('user_id', userId)
+      .maybeSingle();
+    
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError);
+      // Default to free tier rate limit (0 = no API access)
+      return {
+        allowed: false,
+        remaining: 0,
+        resetAt: new Date(Date.now() + 60000),
+        error: 'Unable to verify subscription tier. API access denied.',
+      };
+    }
+    
+    const userTier = profileData?.subscription_plan || 'free';
+    
+    // Get rate limit from subscription_tiers table
+    const { data: tierData, error: tierError } = await supabase
+      .from('subscription_tiers')
+      .select('api_rate_limit, tier_name')
+      .eq('tier_id', userTier)
+      .eq('is_active', true)
+      .maybeSingle();
+    
+    if (tierError || !tierData) {
+      console.error('Error fetching tier data:', tierError);
+      // Default to free tier (no API access)
+      return {
+        allowed: false,
+        remaining: 0,
+        resetAt: new Date(Date.now() + 60000),
+        error: 'Unable to verify subscription tier. API access denied.',
+      };
+    }
+    
+    const maxRequests = tierData.api_rate_limit || 0;
+    const tierName = tierData.tier_name;
+    
+    // If rate limit is 0, deny access (free tier has no API access)
+    if (maxRequests === 0) {
+      return {
+        allowed: false,
+        remaining: 0,
+        resetAt: new Date(Date.now() + 60000),
+        error: `API access not available for ${tierName} tier. Please upgrade your subscription to use the API.`,
+      };
+    }
+    
+    // Check current usage
+    const { data: existing, error: fetchError } = await supabase
+      .from('api_rate_limits')
+      .select('*')
+      .eq('identifier', `api_key:${apiKeyHash}`)
+      .gte('window_start', windowStart.toISOString())
+      .maybeSingle();
+    
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      console.error('Rate limit fetch error:', fetchError);
+      return {
+        allowed: true,
+        remaining: maxRequests,
+        resetAt: new Date(Date.now() + 60000),
+      };
+    }
+    
+    const now = new Date();
+    
+    if (!existing || new Date(existing.window_start) < windowStart) {
+      await supabase
+        .from('api_rate_limits')
+        .upsert({
+          identifier: `api_key:${apiKeyHash}`,
+          window_start: now.toISOString(),
+          request_count: 1,
+        }, { onConflict: 'identifier' });
+      
+      return {
+        allowed: true,
+        remaining: maxRequests - 1,
+        resetAt: new Date(now.getTime() + 60000),
+        tier: tierName,
+        maxRequests: maxRequests,
+      };
+    }
+    
+    if (existing.request_count >= maxRequests) {
+      return {
+        allowed: false,
+        remaining: 0,
+        resetAt: new Date(new Date(existing.window_start).getTime() + 60000),
+        error: `Rate limit exceeded for ${tierName} tier. Maximum ${maxRequests} requests per minute.`,
+        tier: tierName,
+        maxRequests: maxRequests,
+      };
+    }
+    
+    await supabase
+      .from('api_rate_limits')
+      .update({ request_count: existing.request_count + 1 })
+      .eq('identifier', `api_key:${apiKeyHash}`);
+    
+    return {
+      allowed: true,
+      remaining: maxRequests - existing.request_count - 1,
+      resetAt: new Date(new Date(existing.window_start).getTime() + 60000),
+      tier: tierName,
+      maxRequests: maxRequests,
+    };
+  } catch (error) {
+    console.error('Rate limit error:', error);
+    // On error, deny access for security
+    return {
+      allowed: false,
+      remaining: 0,
+      resetAt: new Date(Date.now() + 60000),
+      error: 'Rate limit check failed. Please try again.',
+    };
+  }
+}
+
+// Add Rate Limit Headers
+function addRateLimitHeaders(headers: Record<string, string>, result: any): Record<string, string> {
+  return {
+    ...headers,
+    'X-RateLimit-Limit': String(result.maxRequests || 0),
+    'X-RateLimit-Remaining': String(result.remaining || 0),
+    'X-RateLimit-Reset': result.resetAt?.toISOString() || new Date(Date.now() + 60000).toISOString(),
+    'X-RateLimit-Tier': result.tier || 'unknown',
+  };
+}
+
+// ============================================
+// END INLINE UTILITIES
+// ============================================
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -57,12 +222,32 @@ serve(async (req) => {
 
     const userId = apiKeyRecord.user_id;
 
+    // ✅ CHECK RATE LIMIT (Based on Subscription Tier)
+    const rateLimitResult = await checkApiKeyRateLimit(supabase, hashedKey, userId);
+    
+    if (!rateLimitResult.allowed) {
+      const headers = addRateLimitHeaders({ ...corsHeaders, 'Content-Type': 'application/json' }, rateLimitResult);
+      const statusCode = rateLimitResult.error?.includes('not available') ? 403 : 429;
+      return new Response(
+        JSON.stringify({ 
+          error: rateLimitResult.error,
+          resetAt: rateLimitResult.resetAt,
+          tier: rateLimitResult.tier,
+          maxRequests: rateLimitResult.maxRequests,
+          message: rateLimitResult.error?.includes('not available') 
+            ? 'API access requires a paid subscription. Please upgrade your plan.'
+            : 'Rate limit exceeded. Please wait before making more requests.'
+        }),
+        { status: statusCode, headers }
+      );
+    }
+
     // Get user email
     const { data: userData } = await supabase.auth.admin.getUserById(userId);
     const userEmail = userData?.user?.email;
 
     // Parse request body
-    const { imageUrl, enhancement, classification, watermark, customPose, customFurniture, customPrompt } = await req.json();
+    const { imageUrl, enhancement, classification, watermark, customPose, customFurniture, customPrompt, customMakeup, customHairColor } = await req.json();
     
     if (!imageUrl) {
       return new Response(
@@ -101,42 +286,56 @@ serve(async (req) => {
       );
     }
 
-    // Build enhancement prompt from database
-    let enhancementPrompt = '';
-    let enhancementDisplayName = enhancement;
+    // Support multiple enhancements (comma-separated)
+    const enhancementList = enhancement.includes(',') 
+      ? enhancement.split(',').map((e: string) => e.trim()).filter((e: string) => e.length > 0)
+      : [enhancement];
     
-    // Query by display_name OR enhancement_type (flexible for users)
-    console.log('Querying enhancement:', enhancement);
+    console.log('Processing enhancements:', enhancementList);
+
+    // Build enhancement prompts from database
+    const enhancementPrompts: string[] = [];
+    const enhancementDisplayNames: string[] = [];
     
-    // Try display_name first (with emoji, user-friendly)
-    let { data: promptData } = await supabase
-      .from('enhancement_prompts')
-      .select('prompt_template, display_name, enhancement_type')
-      .eq('display_name', enhancement)
-      .eq('is_active', true)
-      .maybeSingle();
-    
-    // If not found, try by enhancement_type (without emoji, code-friendly)
-    if (!promptData) {
-      console.log('Not found by display_name, trying enhancement_type...');
-      const result = await supabase
+    for (const enh of enhancementList) {
+      // Query by display_name OR enhancement_type (flexible for users)
+      console.log('Querying enhancement:', enh);
+      
+      // Try display_name first (with emoji, user-friendly)
+      let { data: promptData } = await supabase
         .from('enhancement_prompts')
         .select('prompt_template, display_name, enhancement_type')
-        .eq('enhancement_type', enhancement)
+        .eq('display_name', enh)
         .eq('is_active', true)
         .maybeSingle();
-      promptData = result.data;
+      
+      // If not found, try by enhancement_type (without emoji, code-friendly)
+      if (!promptData) {
+        console.log('Not found by display_name, trying enhancement_type...');
+        const result = await supabase
+          .from('enhancement_prompts')
+          .select('prompt_template, display_name, enhancement_type')
+          .eq('enhancement_type', enh)
+          .eq('is_active', true)
+          .maybeSingle();
+        promptData = result.data;
+      }
+      
+      if (promptData?.prompt_template) {
+        enhancementPrompts.push(promptData.prompt_template);
+        enhancementDisplayNames.push(promptData.display_name);
+        console.log('✅ Using database prompt for:', enh, '→', promptData.display_name);
+      } else {
+        // Fallback: simple prompt
+        console.log('⚠️ No database prompt found, using simple fallback for:', enh);
+        enhancementPrompts.push(`Apply ${enh} enhancement professionally for e-commerce product photography.`);
+        enhancementDisplayNames.push(enh);
+      }
     }
     
-    if (promptData?.prompt_template) {
-      enhancementPrompt = promptData.prompt_template;
-      enhancementDisplayName = promptData.display_name;
-      console.log('✅ Using database prompt for:', enhancement, '→', promptData.display_name);
-    } else {
-      // Ultimate fallback: simple prompt
-      console.log('⚠️ No database prompt found, using simple fallback for:', enhancement);
-      enhancementPrompt = `Apply ${enhancement} enhancement professionally for e-commerce product photography.`;
-    }
+    // Combine all enhancement prompts
+    const combinedEnhancementPrompt = enhancementPrompts.join(' Additionally, ');
+    const combinedDisplayNames = enhancementDisplayNames.join(', ');
 
     // Build watermark instruction
     let watermarkInstruction = '';
@@ -150,47 +349,47 @@ serve(async (req) => {
       watermarkInstruction = ' Remove any existing watermarks, text overlays, logos, or branding from the image. Ensure the final image is clean without any text or logo elements.';
     }
 
-    // Determine if model is needed based on enhancement name
-    const titleLower = enhancementDisplayName.toLowerCase();
+    // Determine if model is needed based on enhancement names
+    const combinedTitleLower = combinedDisplayNames.toLowerCase();
     const needsModel = 
-      titleLower.includes('model') || 
-      titleLower.includes('dipakai') || 
-      titleLower.includes('worn') ||
-      titleLower.includes('lifestyle') ||
-      titleLower.includes('manekin') ||
-      titleLower.includes('mannequin') ||
-      titleLower.includes('on-feet') ||
-      titleLower.includes('saat dipakai') ||
-      titleLower.includes('bagian tubuh') ||
-      titleLower.includes('leher') ||
-      titleLower.includes('tangan') ||
-      titleLower.includes('pergelangan');
+      combinedTitleLower.includes('model') || 
+      combinedTitleLower.includes('dipakai') || 
+      combinedTitleLower.includes('worn') ||
+      combinedTitleLower.includes('lifestyle') ||
+      combinedTitleLower.includes('manekin') ||
+      combinedTitleLower.includes('mannequin') ||
+      combinedTitleLower.includes('on-feet') ||
+      combinedTitleLower.includes('saat dipakai') ||
+      combinedTitleLower.includes('bagian tubuh') ||
+      combinedTitleLower.includes('leher') ||
+      combinedTitleLower.includes('tangan') ||
+      combinedTitleLower.includes('pergelangan');
     
     const imageUrls = [imageUrl];
     
     if (needsModel) {
-      if (titleLower.includes('hijab') || titleLower.includes('berhijab')) {
+      if (combinedTitleLower.includes('hijab') || combinedTitleLower.includes('berhijab')) {
         imageUrls.push('https://dcfnvebphjuwtlfuudcd.supabase.co/storage/v1/object/public/model-assets/model_female_hijab.png');
-      } else if (titleLower.includes('wanita') || titleLower.includes('female') || titleLower.includes('woman')) {
+      } else if (combinedTitleLower.includes('wanita') || combinedTitleLower.includes('female') || combinedTitleLower.includes('woman')) {
         imageUrls.push('https://dcfnvebphjuwtlfuudcd.supabase.co/storage/v1/object/public/model-assets/model_female.png');
-      } else if (titleLower.includes('pria') || titleLower.includes('male') || titleLower.includes('man')) {
+      } else if (combinedTitleLower.includes('pria') || combinedTitleLower.includes('male') || combinedTitleLower.includes('man')) {
         imageUrls.push('https://dcfnvebphjuwtlfuudcd.supabase.co/storage/v1/object/public/model-assets/model_male.png');
       } else {
         imageUrls.push('https://dcfnvebphjuwtlfuudcd.supabase.co/storage/v1/object/public/model-assets/model_female.png');
       }
     }
 
-    let generatedPrompt = enhancementPrompt;
+    let generatedPrompt = combinedEnhancementPrompt;
     if (needsModel && imageUrls.length === 2) {
-      const productType = titleLower.includes('shirt') || titleLower.includes('kaos') || titleLower.includes('baju') ? 'shirt' :
-                         titleLower.includes('dress') || titleLower.includes('gaun') ? 'dress' :
-                         titleLower.includes('jacket') || titleLower.includes('jaket') ? 'jacket' :
-                         titleLower.includes('pants') || titleLower.includes('celana') ? 'pants' :
-                         titleLower.includes('shoe') || titleLower.includes('sepatu') ? 'shoes' :
-                         titleLower.includes('bag') || titleLower.includes('tas') ? 'bag' :
-                         titleLower.includes('watch') || titleLower.includes('jam') ? 'watch' :
-                         titleLower.includes('necklace') || titleLower.includes('kalung') ? 'necklace' :
-                         titleLower.includes('bracelet') || titleLower.includes('gelang') ? 'bracelet' :
+      const productType = combinedTitleLower.includes('shirt') || combinedTitleLower.includes('kaos') || combinedTitleLower.includes('baju') ? 'shirt' :
+                         combinedTitleLower.includes('dress') || combinedTitleLower.includes('gaun') ? 'dress' :
+                         combinedTitleLower.includes('jacket') || combinedTitleLower.includes('jaket') ? 'jacket' :
+                         combinedTitleLower.includes('pants') || combinedTitleLower.includes('celana') ? 'pants' :
+                         combinedTitleLower.includes('shoe') || combinedTitleLower.includes('sepatu') ? 'shoes' :
+                         combinedTitleLower.includes('bag') || combinedTitleLower.includes('tas') ? 'bag' :
+                         combinedTitleLower.includes('watch') || combinedTitleLower.includes('jam') ? 'watch' :
+                         combinedTitleLower.includes('necklace') || combinedTitleLower.includes('kalung') ? 'necklace' :
+                         combinedTitleLower.includes('bracelet') || combinedTitleLower.includes('gelang') ? 'bracelet' :
                          'clothing';
       
       generatedPrompt = `Make the ${productType} from file 1 worn by the model from file 2. The model should use a natural professional pose like a fashion model to showcase the ${productType}. Keep the exact face, body, and appearance of the model from file 2. Preserve any text, logos, or branding that exists on the ${productType} from file 1 - do not remove or alter them. Use professional e-commerce photography style with clean background and studio lighting. The ${productType} should fit naturally on the model's body.`;
@@ -198,8 +397,27 @@ serve(async (req) => {
     
     // Add custom prompt if provided (for beauty enhancements with custom colors)
     if (customPrompt && customPrompt.trim()) {
-      generatedPrompt += ` Custom styling: ${customPrompt.trim()}`;
-      console.log('Added custom prompt:', customPrompt.trim());
+      // ✅ SANITIZE CUSTOM PROMPT (Security Update)
+      const sanitized = sanitizePrompt(customPrompt, 500);
+      generatedPrompt += ` Custom styling: ${sanitized}`;
+      console.log('Added sanitized custom prompt');
+    }
+    
+    // Add custom makeup if provided (for makeup enhancements with custom colors)
+    if (customMakeup && customMakeup.trim()) {
+      // ✅ SANITIZE CUSTOM MAKEUP (Security Update)
+      const sanitized = sanitizePrompt(customMakeup, 500);
+      generatedPrompt += ` Custom makeup details: ${sanitized}`;
+      console.log('Added sanitized custom makeup prompt');
+    }
+    
+    // Add custom hair color if provided (for hair style enhancements)
+    if (customHairColor && customHairColor.trim()) {
+      // ✅ SANITIZE CUSTOM HAIR COLOR (Security Update)
+      const sanitized = sanitizePrompt(customHairColor, 100);
+      // Make hair color instruction more explicit and strong
+      generatedPrompt += ` IMPORTANT: Change the hair color to ${sanitized}. The hair must be dyed/colored to ${sanitized}. Apply ${sanitized} hair color throughout all the hair.`;
+      console.log('Added sanitized custom hair color:', sanitized);
     }
     
     generatedPrompt += watermarkInstruction;
@@ -265,10 +483,10 @@ serve(async (req) => {
       );
     }
 
-    // Poll for completion
+    // Poll for completion (max 5 minutes for complex generations)
     let generatedImageUrl = null;
-    const maxAttempts = 60;
-    const pollInterval = 2000;
+    const maxAttempts = 150; // 150 attempts
+    const pollInterval = 2000; // 2 seconds = max 5 minutes total (300 seconds)
     
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       await new Promise(resolve => setTimeout(resolve, pollInterval));
@@ -353,7 +571,7 @@ serve(async (req) => {
             user_email: userEmail,
             original_image_path: 'api-upload',
             generated_image_path: fileName,
-            enhancement_type: enhancementDisplayName,
+            enhancement_type: combinedDisplayNames,
             classification_result: classification || 'unknown',
             prompt_used: generatedPrompt
           });
@@ -384,6 +602,9 @@ serve(async (req) => {
       console.error('Error saving generated image:', saveError);
     }
 
+    // ✅ ADD RATE LIMIT HEADERS TO SUCCESS RESPONSE
+    const responseHeaders = addRateLimitHeaders({ ...corsHeaders, 'Content-Type': 'application/json' }, rateLimitResult);
+
     return new Response(
       JSON.stringify({ 
         success: true,
@@ -391,7 +612,7 @@ serve(async (req) => {
         prompt: generatedPrompt,
         taskId: taskId
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: responseHeaders }
     );
 
   } catch (error: unknown) {

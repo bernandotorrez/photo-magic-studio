@@ -15,6 +15,8 @@ import InteriorDesign from "./pages/InteriorDesign";
 import ExteriorDesign from "./pages/ExteriorDesign";
 import FoodEnhancement from "./pages/FoodEnhancement";
 import AestheticClinic from "./pages/AestheticClinic";
+import HairStyle from "./pages/HairStyle";
+import MakeupArtist from "./pages/MakeupArtist";
 import ComingSoon from "./pages/ComingSoon";
 import HistoryPage from "./pages/History";
 import Admin from "./pages/Admin";
@@ -49,6 +51,8 @@ const App = () => (
             <Route path="/exterior-design" element={<ExteriorDesign />} />
             <Route path="/food-enhancement" element={<FoodEnhancement />} />
             <Route path="/aesthetic-clinic" element={<AestheticClinic />} />
+            <Route path="/hair-style" element={<HairStyle />} />
+            <Route path="/makeup-artist" element={<MakeupArtist />} />
             <Route path="/coming-soon" element={<ComingSoon />} />
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/admin" element={<Admin />} />

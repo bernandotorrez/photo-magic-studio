@@ -1,19 +1,49 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// ============================================
+// INLINE CORS UTILITIES (Private API)
+// ============================================
+const ALLOWED_ORIGINS = [
+  'https://pixel-nova-ai.vercel.app',
+  'https://ai-magic-photo.lovable.app',
+  'http://localhost:8080',
+  'http://localhost:5173',
+];
+
+function getPrivateCorsHeaders(requestOrigin: string | null): Record<string, string> {
+  const isAllowed = requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin);
+  
+  if (isAllowed) {
+    return {
+      'Access-Control-Allow-Origin': requestOrigin,
+      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Max-Age': '86400',
+    };
+  }
+  
+  return {
+    'Access-Control-Allow-Origin': ALLOWED_ORIGINS[0],
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  };
+}
+// ============================================
 
 serve(async (req) => {
+  // ✅ GET ORIGIN FOR CORS CHECK
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getPrivateCorsHeaders(origin);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { imageUrl, originalImagePath, imagePath, enhancement, enhancements, enhancementIds, classification, watermark, customPose, customFurniture, customPrompt, debugMode } = await req.json();
+    const { imageUrl, originalImagePath, imagePath, enhancement, enhancements, enhancementIds, classification, watermark, customPose, customFurniture, customPrompt, customMakeup, customHairColor, debugMode } = await req.json();
     
     // Get user ID and email from authorization header
     const authHeader = req.headers.get('authorization');
@@ -205,6 +235,18 @@ serve(async (req) => {
     if (customPrompt && customPrompt.trim()) {
       prompts.push(`Custom styling request: ${customPrompt.trim()}`);
       console.log('Added custom prompt:', customPrompt.trim());
+    }
+    
+    // Add custom makeup if provided
+    if (customMakeup && customMakeup.trim()) {
+      prompts.push(`Custom makeup details: ${customMakeup.trim()}`);
+      console.log('Added custom makeup:', customMakeup.trim());
+    }
+    
+    // Add custom hair color if provided
+    if (customHairColor && customHairColor.trim()) {
+      prompts.push(`IMPORTANT: Change the hair color to ${customHairColor.trim()}. The hair must be dyed/colored to ${customHairColor.trim()}. Apply ${customHairColor.trim()} hair color throughout all the hair.`);
+      console.log('Added custom hair color:', customHairColor.trim());
     }
     
     // Combine multiple prompts
@@ -407,10 +449,11 @@ serve(async (req) => {
     console.log('Task created successfully. Task ID:', taskId);
     console.log('Starting to poll for job completion...');
 
-    // Poll for job completion (max 2 minutes for complex generations)
+    // Poll for job completion (max 5 minutes for complex generations like hair style with color changes)
+    // Hair style with color changes can take 4-5 minutes on average
     let generatedImageUrl = null;
-    const maxAttempts = 60; // 60 attempts
-    const pollInterval = 2000; // 2 seconds = max 2 minutes total
+    const maxAttempts = 150; // 150 attempts
+    const pollInterval = 2000; // 2 seconds = max 5 minutes total (300 seconds)
     
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       // Wait before polling (don't poll immediately on first attempt)

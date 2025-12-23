@@ -19,16 +19,44 @@ interface Enhancement {
   sort_order: number;
 }
 
+interface SubscriptionTier {
+  tier_id: string;
+  tier_name: string;
+  api_rate_limit: number;
+  tokens: number;
+}
+
 export default function ApiDocumentation() {
   const { toast } = useToast();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [enhancements, setEnhancements] = useState<Record<string, Enhancement[]>>({});
   const [loadingEnhancements, setLoadingEnhancements] = useState(true);
+  const [tiers, setTiers] = useState<SubscriptionTier[]>([]);
+  const [loadingTiers, setLoadingTiers] = useState(true);
 
   // Load enhancements from database
   useEffect(() => {
     loadEnhancements();
+    loadSubscriptionTiers();
   }, []);
+
+  const loadSubscriptionTiers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('subscription_tiers')
+        .select('tier_id, tier_name, api_rate_limit, tokens')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
+      if (!error && data) {
+        setTiers(data);
+      }
+    } catch (error) {
+      console.error('Error loading subscription tiers:', error);
+    } finally {
+      setLoadingTiers(false);
+    }
+  };
 
   const loadEnhancements = async () => {
     try {
@@ -184,29 +212,33 @@ export default function ApiDocumentation() {
               <CardDescription>Batas request berdasarkan paket subscription</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 border rounded">
-                  <div>
-                    <p className="font-semibold">Free Plan</p>
-                    <p className="text-sm text-muted-foreground">No API Access</p>
-                  </div>
-                  <Badge variant="secondary">❌</Badge>
+              {loadingTiers ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                 </div>
-                <div className="flex items-center justify-between p-3 border rounded">
-                  <div>
-                    <p className="font-semibold">Basic Plan</p>
-                    <p className="text-sm text-muted-foreground">5 req/min • 50 gen/month</p>
-                  </div>
-                  <Badge>✅</Badge>
+              ) : (
+                <div className="space-y-3">
+                  {tiers.map((tier) => {
+                    const hasApiAccess = tier.api_rate_limit > 0;
+                    return (
+                      <div key={tier.tier_id} className="flex items-center justify-between p-3 border rounded">
+                        <div>
+                          <p className="font-semibold">{tier.tier_name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {hasApiAccess 
+                              ? `${tier.api_rate_limit} req/min • ${tier.tokens} gen/month`
+                              : 'No API Access'
+                            }
+                          </p>
+                        </div>
+                        <Badge variant={hasApiAccess ? 'default' : 'secondary'}>
+                          {hasApiAccess ? '✅' : '❌'}
+                        </Badge>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div className="flex items-center justify-between p-3 border rounded">
-                  <div>
-                    <p className="font-semibold">Pro Plan</p>
-                    <p className="text-sm text-muted-foreground">10 req/min • 200 gen/month</p>
-                  </div>
-                  <Badge>✅</Badge>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -398,7 +430,25 @@ export default function ApiDocumentation() {
   }'`}
                 />
                 
-                <h4 className="font-semibold mb-2 mt-4">✨ NEW: Custom Pose Example (AI Photographer):</h4>
+                <h4 className="font-semibold mb-2 mt-4">✨ NEW: Multiple Enhancements (Comma-Separated):</h4>
+                <CodeBlock
+                  language="bash"
+                  label="Multiple Enhancements Request"
+                  code={`curl -X POST ${SUPABASE_URL}/functions/v1/api-generate \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: eak_your_api_key" \\
+  -d '{
+    "imageUrl": "https://example.com/product.jpg",
+    "enhancement": "background_removal, color_correction, add_shadow",
+    "classification": "product"
+  }'`}
+                />
+                <p className="text-sm text-muted-foreground mt-2">
+                  💡 <strong>Tip:</strong> Anda bisa menggabungkan multiple enhancements dengan memisahkan menggunakan koma (,). 
+                  Semua enhancement akan diterapkan secara bersamaan untuk hasil yang lebih optimal.
+                </p>
+                
+                <h4 className="font-semibold mb-2 mt-4">✨ Custom Pose Example (AI Photographer):</h4>
                 <CodeBlock
                   language="bash"
                   label="Custom Pose Request"
@@ -413,7 +463,7 @@ export default function ApiDocumentation() {
   }'`}
                 />
                 
-                <h4 className="font-semibold mb-2 mt-4">✨ NEW: Custom Furniture Example (Interior Design):</h4>
+                <h4 className="font-semibold mb-2 mt-4">✨ Custom Furniture Example (Interior Design):</h4>
                 <CodeBlock
                   language="bash"
                   label="Custom Furniture Request"
@@ -452,7 +502,13 @@ export default function ApiDocumentation() {
                         <td className="p-3 font-mono">enhancement</td>
                         <td className="p-3">string</td>
                         <td className="p-3"><Badge variant="destructive">Yes</Badge></td>
-                        <td className="p-3">Jenis enhancement</td>
+                        <td className="p-3">
+                          Jenis enhancement. Bisa single atau multiple (pisahkan dengan koma).
+                          <br />
+                          <span className="text-xs text-muted-foreground">
+                            Contoh: "background_removal" atau "background_removal, color_correction, add_shadow"
+                          </span>
+                        </td>
                       </tr>
                       <tr className="border-t">
                         <td className="p-3 font-mono">classification</td>
@@ -612,7 +668,7 @@ export default function ApiDocumentation() {
               <CodeBlock
                 language="javascript"
                 label="JavaScript Example"
-                code={`async function generateImage(imageUrl, enhancement) {
+                code={`async function generateImage(imageUrl, enhancement, options = {}) {
   const response = await fetch('${SUPABASE_URL}/functions/v1/api-generate', {
     method: 'POST',
     headers: {
@@ -622,7 +678,7 @@ export default function ApiDocumentation() {
     body: JSON.stringify({
       imageUrl,
       enhancement,
-      classification: 'clothing'
+      ...options
     })
   });
 
@@ -635,11 +691,25 @@ export default function ApiDocumentation() {
   return data.generatedImageUrl;
 }
 
-// Usage
+// Basic usage
 const result = await generateImage(
   'https://example.com/product.jpg',
   'add_female_model'
 );
+
+// ✨ Multiple enhancements
+const result2 = await generateImage(
+  'https://example.com/product.jpg',
+  'background_removal, color_correction, add_shadow'
+);
+
+// ✨ With custom options
+const result3 = await generateImage(
+  'https://example.com/shirt.jpg',
+  'add_female_model, professional_lighting',
+  { classification: 'clothing' }
+);
+
 console.log('Generated:', result);`}
               />
             </CardContent>
@@ -655,14 +725,18 @@ console.log('Generated:', result);`}
                 label="Python Example"
                 code={`import requests
 
-def generate_image(image_url, enhancement):
+def generate_image(image_url, enhancement, options=None):
+    payload = {
+        'imageUrl': image_url,
+        'enhancement': enhancement
+    }
+    
+    if options:
+        payload.update(options)
+    
     response = requests.post(
         '${SUPABASE_URL}/functions/v1/api-generate',
-        json={
-            'imageUrl': image_url,
-            'enhancement': enhancement,
-            'classification': 'clothing'
-        },
+        json=payload,
         headers={
             'Content-Type': 'application/json',
             'x-api-key': 'eak_your_api_key'
@@ -671,11 +745,25 @@ def generate_image(image_url, enhancement):
     response.raise_for_status()
     return response.json()['generatedImageUrl']
 
-# Usage
+# Basic usage
 result = generate_image(
     'https://example.com/product.jpg',
     'add_female_model'
 )
+
+# ✨ Multiple enhancements
+result2 = generate_image(
+    'https://example.com/product.jpg',
+    'background_removal, color_correction, add_shadow'
+)
+
+# ✨ With custom options
+result3 = generate_image(
+    'https://example.com/shirt.jpg',
+    'add_female_model, professional_lighting',
+    {'classification': 'clothing'}
+)
+
 print('Generated:', result)`}
               />
             </CardContent>
@@ -690,22 +778,52 @@ print('Generated:', result)`}
                 language="php"
                 label="PHP Example"
                 code={`<?php
-$ch = curl_init('${SUPABASE_URL}/functions/v1/api-generate');
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_POST, true);
-curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
-    'imageUrl' => 'https://example.com/product.jpg',
-    'enhancement' => 'add_female_model',
-    'classification' => 'clothing'
-]));
-curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    'Content-Type: application/json',
-    'x-api-key: eak_your_api_key'
-]);
+function generateImage($imageUrl, $enhancement, $options = []) {
+    $payload = [
+        'imageUrl' => $imageUrl,
+        'enhancement' => $enhancement
+    ];
+    
+    if (!empty($options)) {
+        $payload = array_merge($payload, $options);
+    }
+    
+    $ch = curl_init('${SUPABASE_URL}/functions/v1/api-generate');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json',
+        'x-api-key: eak_your_api_key'
+    ]);
+    
+    $response = curl_exec($ch);
+    $data = json_decode($response, true);
+    curl_close($ch);
+    
+    return $data['generatedImageUrl'];
+}
 
-$response = curl_exec($ch);
-$data = json_decode($response, true);
-echo 'Generated: ' . $data['generatedImageUrl'];
+// Basic usage
+$result = generateImage(
+    'https://example.com/product.jpg',
+    'add_female_model'
+);
+
+// ✨ Multiple enhancements
+$result2 = generateImage(
+    'https://example.com/product.jpg',
+    'background_removal, color_correction, add_shadow'
+);
+
+// ✨ With custom options
+$result3 = generateImage(
+    'https://example.com/shirt.jpg',
+    'add_female_model, professional_lighting',
+    ['classification' => 'clothing']
+);
+
+echo 'Generated: ' . $result;
 ?>`}
               />
             </CardContent>

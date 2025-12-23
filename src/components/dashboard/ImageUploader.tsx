@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, Image as ImageIcon, Loader2, Link as LinkIcon } from 'lucide-react';
+import { Upload, Image as ImageIcon, Loader2, Link as LinkIcon, Camera, Info } from 'lucide-react';
 
 interface Profile {
   subscription_tokens: number;
@@ -33,7 +34,11 @@ export function ImageUploader({
   const [isUploading, setIsUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState('');
-  const [uploadMethod, setUploadMethod] = useState<'file' | 'url'>('file');
+  const [uploadMethod, setUploadMethod] = useState<'file' | 'url' | 'camera'>('file');
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -266,6 +271,169 @@ export function ImageUploader({
     disabled: isUploading || (profile && !canGenerate), // Only disable if profile loaded and limit reached
   });
 
+  // Camera functions
+  const startCamera = async () => {
+    setCameraError(null);
+    console.log('🎥 Starting camera...');
+    console.log('🎥 videoRef.current:', videoRef.current);
+    
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'user', // Front camera for selfies
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      });
+      
+      console.log('✅ Camera stream obtained:', stream);
+      console.log('✅ Stream active:', stream.active);
+      console.log('✅ Video tracks:', stream.getVideoTracks());
+      
+      if (videoRef.current) {
+        console.log('✅ Setting stream to video element');
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
+        setIsCameraActive(true);
+        console.log('✅ Camera activated successfully');
+        
+        // Wait for video to be ready
+        videoRef.current.onloadedmetadata = () => {
+          console.log('✅ Video metadata loaded');
+          console.log('✅ Video dimensions:', videoRef.current?.videoWidth, 'x', videoRef.current?.videoHeight);
+        };
+      } else {
+        console.error('❌ videoRef.current is null!');
+        throw new Error('Video element not found');
+      }
+    } catch (error: any) {
+      console.error('❌ Camera error:', error);
+      let errorMessage = 'Tidak dapat mengakses kamera. ';
+      
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        errorMessage += 'Anda menolak izin akses kamera. Silakan izinkan akses kamera di pengaturan browser Anda.';
+      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+        errorMessage += 'Kamera tidak ditemukan pada perangkat Anda.';
+      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+        errorMessage += 'Kamera sedang digunakan oleh aplikasi lain.';
+      } else {
+        errorMessage += error.message || 'Terjadi kesalahan saat mengakses kamera.';
+      }
+      
+      setCameraError(errorMessage);
+      toast({
+        title: 'Kamera Gagal Dibuka',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setIsCameraActive(false);
+    setCameraError(null);
+  };
+
+  const capturePhoto = async () => {
+    if (!videoRef.current || !user) return;
+
+    // Check limit only if profile is loaded
+    if (profile && !canGenerate) {
+      toast({
+        title: 'Token Habis',
+        description: `Token Anda sudah habis (${subscriptionTokens} bulanan + ${purchasedTokens} top-up = ${totalTokens} total). Silakan top up untuk melanjutkan.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      // Create canvas to capture video frame
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) throw new Error('Failed to get canvas context');
+      
+      // Draw current video frame to canvas
+      ctx.drawImage(videoRef.current, 0, 0);
+      
+      // Convert canvas to blob
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error('Failed to create blob'));
+        }, 'image/jpeg', 0.95);
+      });
+
+      // Show preview
+      const previewUrl = URL.createObjectURL(blob);
+      setPreview(previewUrl);
+
+      // Stop camera after capture
+      stopCamera();
+
+      // Upload to Supabase Storage
+      const fileName = `${user.id}/${Date.now()}.jpg`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('upload-images')
+        .upload(fileName, blob);
+
+      if (uploadError) throw uploadError;
+
+      // Get signed URL for the uploaded image
+      const { data: signedUrlData } = await supabase.storage
+        .from('upload-images')
+        .createSignedUrl(fileName, 3600); // 1 hour
+
+      if (!signedUrlData?.signedUrl) throw new Error('Failed to get signed URL');
+
+      // Call edge function for classification
+      const classificationData = await classifyImage(signedUrlData.signedUrl);
+
+      onImageUploaded(
+        signedUrlData.signedUrl,
+        fileName,
+        classificationData.classification,
+        classificationData.enhancementOptions,
+        classificationData // Pass full response data
+      );
+
+      toast({
+        title: 'Foto Berhasil Diambil',
+        description: `Terdeteksi sebagai: ${classificationData.classification}`,
+      });
+    } catch (error: any) {
+      console.error('Capture error:', error);
+      toast({
+        title: 'Gagal Mengambil Foto',
+        description: error.message || 'Terjadi kesalahan saat mengambil foto',
+        variant: 'destructive',
+      });
+      setPreview(null);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Cleanup camera on unmount
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, []);
+
   return (
     <div className="space-y-4">
       {/* Only show limit warning if profile is loaded and no tokens */}
@@ -280,8 +448,8 @@ export function ImageUploader({
         </div>
       )}
 
-      <Tabs value={uploadMethod} onValueChange={(v) => setUploadMethod(v as 'file' | 'url')}>
-        <TabsList className="grid w-full grid-cols-2">
+      <Tabs value={uploadMethod} onValueChange={(v) => setUploadMethod(v as 'file' | 'url' | 'camera')}>
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="file" className="gap-2">
             <Upload className="w-4 h-4" />
             Upload File
@@ -289,6 +457,10 @@ export function ImageUploader({
           <TabsTrigger value="url" className="gap-2">
             <LinkIcon className="w-4 h-4" />
             Dari URL
+          </TabsTrigger>
+          <TabsTrigger value="camera" className="gap-2">
+            <Camera className="w-4 h-4" />
+            Ambil Foto
           </TabsTrigger>
         </TabsList>
 
@@ -399,6 +571,91 @@ export function ImageUploader({
                 </Button>
               </>
             )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="camera" className="mt-4">
+          <div className="space-y-4">
+            {/* Camera Permission Alert */}
+            <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+              <Info className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-sm">
+                <strong>Izinkan Akses Kamera:</strong> Browser akan meminta izin akses kamera. 
+                Klik "Allow" atau "Izinkan" pada popup yang muncul untuk menggunakan fitur ini.
+              </AlertDescription>
+            </Alert>
+
+            {cameraError && (
+              <Alert variant="destructive">
+                <AlertDescription className="text-sm">
+                  {cameraError}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {!isCameraActive ? (
+              <div className="border-2 border-dashed rounded-xl p-12 text-center">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Camera className="w-8 h-8 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Ambil Foto dengan Kamera</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Klik tombol di bawah untuk membuka kamera
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={startCamera}
+                    disabled={isUploading || (profile && !canGenerate)}
+                    className="mt-2"
+                  >
+                    <Camera className="w-4 h-4 mr-2" />
+                    Buka Kamera
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+            
+            {/* Video element - always rendered but hidden when not active */}
+            <div className={isCameraActive ? 'space-y-4' : 'hidden'}>
+              <div className="relative border-2 border-primary rounded-xl overflow-hidden bg-black">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-auto"
+                  style={{ maxHeight: '400px' }}
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={capturePhoto}
+                  disabled={isUploading}
+                  className="flex-1"
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Memproses...
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="w-4 h-4 mr-2" />
+                      Ambil Foto
+                    </>
+                  )}
+                </Button>
+                <Button 
+                  onClick={stopCamera}
+                  variant="outline"
+                  disabled={isUploading}
+                >
+                  Tutup Kamera
+                </Button>
+              </div>
+            </div>
           </div>
         </TabsContent>
       </Tabs>

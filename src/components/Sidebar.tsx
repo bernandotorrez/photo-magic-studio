@@ -22,7 +22,8 @@ import {
   FileText,
   UtensilsCrossed,
   History,
-  Sparkle
+  Scissors,
+  Palette
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -93,12 +94,20 @@ export function Sidebar({ isAdmin = false, onSignOut, onNavigate }: SidebarProps
       info: 'AI untuk food photography - perfect angles, plating styles, lighting effects, ingredient overlays, banners untuk menu & delivery apps.'
     },
     { 
-      icon: Sparkle, 
-      label: 'Aesthetic Clinic', 
-      path: '/aesthetic-clinic',
+      icon: Scissors, 
+      label: 'Hair Style', 
+      path: '/hair-style',
       badge: 'New',
       badgeVariant: 'secondary',
-      info: 'AI untuk beauty enhancement - hair style transformation (pria & wanita), makeup virtual try-on dengan custom colors, dan complete makeover.'
+      info: 'AI untuk hair style transformation - ubah gaya rambut dengan auto gender detection untuk pria dan wanita.'
+    },
+    { 
+      icon: Palette, 
+      label: 'Make Up Artist', 
+      path: '/makeup-artist',
+      badge: 'New',
+      badgeVariant: 'secondary',
+      info: 'AI untuk makeup virtual try-on - 25+ style makeup dengan custom color support untuk lipstik, eyeshadow, dan blush.'
     },
     { 
       icon: Rocket, 

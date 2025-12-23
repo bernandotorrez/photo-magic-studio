@@ -1,10 +1,42 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// ============================================
+// INLINE UTILITIES (Security Updates)
+// ============================================
+
+// Whitelist of allowed origins for private APIs
+const ALLOWED_ORIGINS = [
+  'https://pixel-nova-ai.vercel.app',
+  'https://ai-magic-photo.lovable.app',
+  'http://localhost:8080',
+  'http://localhost:5173',
+];
+
+// CORS Headers (Private API - Whitelist only)
+function getPrivateCorsHeaders(requestOrigin: string | null): Record<string, string> {
+  const isAllowed = requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin);
+  
+  if (isAllowed) {
+    return {
+      'Access-Control-Allow-Origin': requestOrigin,
+      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Max-Age': '86400',
+    };
+  }
+  
+  return {
+    'Access-Control-Allow-Origin': ALLOWED_ORIGINS[0],
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  };
+}
+
+// ============================================
+// END INLINE UTILITIES
+// ============================================
 
 interface CreateApiKeyRequest {
   name: string;
@@ -22,6 +54,10 @@ function generateApiKey(): string {
 }
 
 serve(async (req) => {
+  // ✅ GET ORIGIN FOR CORS CHECK
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getPrivateCorsHeaders(origin);
+  
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
