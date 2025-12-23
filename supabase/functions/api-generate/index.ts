@@ -202,7 +202,7 @@ serve(async (req) => {
     // Verify API key
     const { data: apiKeyRecord, error: apiKeyError } = await supabase
       .from('api_keys')
-      .select('user_id, is_active')
+      .select('user_id, is_active, id')
       .eq('key_hash', hashedKey)
       .maybeSingle();
 
@@ -221,6 +221,7 @@ serve(async (req) => {
     }
 
     const userId = apiKeyRecord.user_id;
+    const apiKeyId = apiKeyRecord.id;
 
     // ✅ CHECK RATE LIMIT (Based on Subscription Tier)
     const rateLimitResult = await checkApiKeyRateLimit(supabase, hashedKey, userId);
@@ -228,6 +229,23 @@ serve(async (req) => {
     if (!rateLimitResult.allowed) {
       const headers = addRateLimitHeaders({ ...corsHeaders, 'Content-Type': 'application/json' }, rateLimitResult);
       const statusCode = rateLimitResult.error?.includes('not available') ? 403 : 429;
+      
+      // ✅ LOG FAILED REQUEST (Rate Limit)
+      try {
+        await supabase.rpc('log_api_key_usage', {
+          p_api_key_id: apiKeyId,
+          p_user_id: userId,
+          p_endpoint: 'api-generate',
+          p_request_method: 'POST',
+          p_request_payload: null,
+          p_response_status: statusCode,
+          p_ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
+          p_user_agent: req.headers.get('user-agent') || 'unknown'
+        });
+      } catch (logError) {
+        console.error('Failed to log API usage:', logError);
+      }
+      
       return new Response(
         JSON.stringify({ 
           error: rateLimitResult.error,
@@ -249,6 +267,9 @@ serve(async (req) => {
     // Parse request body
     const { imageUrl, enhancement, classification, watermark, customPose, customFurniture, customPrompt, customMakeup, customHairColor } = await req.json();
     
+    // Track if token was deducted (for refund on failure)
+    let tokenDeducted = false;
+    
     if (!imageUrl) {
       return new Response(
         JSON.stringify({ error: 'imageUrl is required' }),
@@ -263,7 +284,7 @@ serve(async (req) => {
       );
     }
 
-    // Check user's remaining tokens (dual token system)
+    // ✅ CRITICAL FIX: Check and deduct token BEFORE generating
     const { data: profileData } = await supabase
       .from('profiles')
       .select('subscription_tokens, purchased_tokens')
@@ -274,7 +295,8 @@ serve(async (req) => {
     const purchasedTokens = profileData?.purchased_tokens || 0;
     const totalTokens = subscriptionTokens + purchasedTokens;
     
-    if (totalTokens <= 0) {
+    // Check if user has at least 1 token
+    if (totalTokens < 1) {
       return new Response(
         JSON.stringify({ 
           error: 'Insufficient tokens. Please top up to continue.',
@@ -285,6 +307,44 @@ serve(async (req) => {
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Deduct token NOW (before generation)
+    console.log('🔒 Deducting token BEFORE generation...');
+    const { data: deductResult, error: deductError } = await supabase.rpc('deduct_user_tokens', {
+      p_user_id: userId,
+      p_amount: 1
+    });
+
+    if (deductError) {
+      console.error('❌ Error deducting tokens:', deductError);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Failed to deduct token. Please try again.',
+          details: deductError.message
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!deductResult || deductResult.length === 0 || !deductResult[0].success) {
+      const message = deductResult?.[0]?.message || 'Token deduction failed';
+      console.error('❌ Token deduction failed:', message);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Insufficient tokens',
+          details: message
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    tokenDeducted = true;
+    console.log('✅ Token deducted successfully:', {
+      subscription_used: deductResult[0].subscription_used,
+      purchased_used: deductResult[0].purchased_used,
+      remaining_subscription: deductResult[0].remaining_subscription,
+      remaining_purchased: deductResult[0].remaining_purchased
+    });
 
     // Support multiple enhancements (comma-separated)
     const enhancementList = enhancement.includes(',') 
@@ -426,6 +486,17 @@ serve(async (req) => {
     const KIE_AI_API_KEY = Deno.env.get('KIE_AI_API_KEY');
     
     if (!KIE_AI_API_KEY) {
+      // ✅ REFUND TOKEN if API key not configured
+      if (tokenDeducted) {
+        console.log('🔄 Refunding token due to missing API key...');
+        await supabase.rpc('add_user_tokens', {
+          p_user_id: userId,
+          p_amount: 1,
+          p_token_type: 'purchased',
+          p_expiry_days: 0
+        });
+      }
+      
       return new Response(
         JSON.stringify({ error: 'API key not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -454,6 +525,17 @@ serve(async (req) => {
     if (!imageGenResponse.ok) {
       const errorText = await imageGenResponse.text();
       
+      // ✅ REFUND TOKEN if API call failed
+      if (tokenDeducted) {
+        console.log('🔄 Refunding token due to API error...');
+        await supabase.rpc('add_user_tokens', {
+          p_user_id: userId,
+          p_amount: 1,
+          p_token_type: 'purchased',
+          p_expiry_days: 0
+        });
+      }
+      
       if (imageGenResponse.status === 429) {
         return new Response(
           JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
@@ -477,6 +559,17 @@ serve(async (req) => {
     const taskId = imageGenData.data?.taskId;
     
     if (!taskId) {
+      // ✅ REFUND TOKEN if no task ID received
+      if (tokenDeducted) {
+        console.log('🔄 Refunding token due to missing task ID...');
+        await supabase.rpc('add_user_tokens', {
+          p_user_id: userId,
+          p_amount: 1,
+          p_token_type: 'purchased',
+          p_expiry_days: 0
+        });
+      }
+      
       return new Response(
         JSON.stringify({ error: 'No task ID received from API' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -514,6 +607,17 @@ serve(async (req) => {
           }
         }
       } else if (taskData.state === 'fail') {
+        // ✅ REFUND TOKEN if job failed
+        if (tokenDeducted) {
+          console.log('🔄 Refunding token due to job failure...');
+          await supabase.rpc('add_user_tokens', {
+            p_user_id: userId,
+            p_amount: 1,
+            p_token_type: 'purchased',
+            p_expiry_days: 0
+          });
+        }
+        
         return new Response(
           JSON.stringify({ 
             error: 'Image generation failed', 
@@ -525,6 +629,17 @@ serve(async (req) => {
     }
     
     if (!generatedImageUrl) {
+      // ✅ REFUND TOKEN if generation timed out
+      if (tokenDeducted) {
+        console.log('🔄 Refunding token due to timeout...');
+        await supabase.rpc('add_user_tokens', {
+          p_user_id: userId,
+          p_amount: 1,
+          p_token_type: 'purchased',
+          p_expiry_days: 0
+        });
+      }
+      
       return new Response(
         JSON.stringify({ error: 'Image generation timed out' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -576,27 +691,7 @@ serve(async (req) => {
             prompt_used: generatedPrompt
           });
 
-        // Deduct tokens using dual token system (subscription tokens first)
-        const { data: deductResult, error: deductError } = await supabase.rpc('deduct_user_tokens', {
-          p_user_id: userId,
-          p_amount: 1
-        });
-
-        if (deductError) {
-          console.error('❌ Error deducting tokens:', deductError);
-        } else if (deductResult && deductResult.length > 0) {
-          const result = deductResult[0];
-          if (result.success) {
-            console.log('✅ Token deducted successfully:', {
-              subscription_used: result.subscription_used,
-              purchased_used: result.purchased_used,
-              remaining_subscription: result.remaining_subscription,
-              remaining_purchased: result.remaining_purchased
-            });
-          } else {
-            console.error('❌ Failed to deduct tokens:', result.message);
-          }
-        }
+        // Token already deducted before generation - no need to deduct again
       }
     } catch (saveError) {
       console.error('Error saving generated image:', saveError);
@@ -604,6 +699,26 @@ serve(async (req) => {
 
     // ✅ ADD RATE LIMIT HEADERS TO SUCCESS RESPONSE
     const responseHeaders = addRateLimitHeaders({ ...corsHeaders, 'Content-Type': 'application/json' }, rateLimitResult);
+
+    // ✅ LOG API KEY USAGE
+    try {
+      await supabase.rpc('log_api_key_usage', {
+        p_api_key_id: apiKeyId,
+        p_user_id: userId,
+        p_endpoint: 'api-generate',
+        p_request_method: 'POST',
+        p_request_payload: { 
+          enhancement: combinedDisplayNames,
+          classification: classification || 'unknown'
+        },
+        p_response_status: 200,
+        p_ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
+        p_user_agent: req.headers.get('user-agent') || 'unknown'
+      });
+    } catch (logError) {
+      console.error('Failed to log API usage:', logError);
+      // Don't fail the request if logging fails
+    }
 
     return new Response(
       JSON.stringify({ 

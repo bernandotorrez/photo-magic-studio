@@ -45,6 +45,9 @@ serve(async (req) => {
   try {
     const { imageUrl, originalImagePath, imagePath, enhancement, enhancements, enhancementIds, classification, watermark, customPose, customFurniture, customPrompt, customMakeup, customHairColor, debugMode } = await req.json();
     
+    // Track if token was deducted (for refund on failure)
+    let tokenDeducted = false;
+    
     // Get user ID and email from authorization header
     const authHeader = req.headers.get('authorization');
     let userId: string | null = null;
@@ -83,7 +86,8 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
-    // Check user's remaining tokens (dual token system)
+    // ✅ CRITICAL FIX: Deduct token BEFORE generating to prevent abuse
+    // If generation fails, we'll refund the token
     if (userId && userEmail) {
       const { data: profileData } = await supabase
         .from('profiles')
@@ -95,7 +99,8 @@ serve(async (req) => {
       const purchasedTokens = profileData?.purchased_tokens || 0;
       const totalTokens = subscriptionTokens + purchasedTokens;
       
-      if (totalTokens <= 0) {
+      // Check if user has at least 1 token
+      if (totalTokens < 1) {
         return new Response(
           JSON.stringify({ 
             error: 'Token Anda sudah habis. Silakan top up untuk melanjutkan.',
@@ -106,6 +111,45 @@ serve(async (req) => {
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+
+      // Deduct token NOW (before generation)
+      console.log('🔒 Deducting token BEFORE generation...');
+      const { data: deductResult, error: deductError } = await supabase.rpc('deduct_user_tokens', {
+        p_user_id: userId,
+        p_amount: 1
+      });
+
+      if (deductError) {
+        console.error('❌ Error deducting tokens:', deductError);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Failed to deduct token. Please try again.',
+            details: deductError.message
+          }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (!deductResult || deductResult.length === 0 || !deductResult[0].success) {
+        const message = deductResult?.[0]?.message || 'Token deduction failed';
+        console.error('❌ Token deduction failed:', message);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Insufficient tokens',
+            details: message
+          }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      tokenDeducted = true;
+      console.log('✅ Token deducted successfully:', {
+        subscription_used: deductResult[0].subscription_used,
+        purchased_used: deductResult[0].purchased_used,
+        remaining_subscription: deductResult[0].remaining_subscription,
+        remaining_purchased: deductResult[0].remaining_purchased,
+        total_remaining: deductResult[0].remaining_subscription + deductResult[0].remaining_purchased
+      });
     }
 
     // Get image URL from storage if not provided directly
@@ -413,6 +457,17 @@ serve(async (req) => {
       const errorText = await imageGenResponse.text();
       console.error('Image generation API error:', imageGenResponse.status, errorText);
       
+      // ✅ REFUND TOKEN if API call failed
+      if (tokenDeducted && userId) {
+        console.log('🔄 Refunding token due to API error...');
+        await supabase.rpc('add_user_tokens', {
+          p_user_id: userId,
+          p_amount: 1,
+          p_token_type: 'purchased',
+          p_expiry_days: 0
+        });
+      }
+      
       if (imageGenResponse.status === 429) {
         return new Response(
           JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
@@ -440,6 +495,18 @@ serve(async (req) => {
     
     if (!taskId) {
       console.error('No task ID in response:', JSON.stringify(imageGenData));
+      
+      // ✅ REFUND TOKEN if no task ID received
+      if (tokenDeducted && userId) {
+        console.log('🔄 Refunding token due to missing task ID...');
+        await supabase.rpc('add_user_tokens', {
+          p_user_id: userId,
+          p_amount: 1,
+          p_token_type: 'purchased',
+          p_expiry_days: 0
+        });
+      }
+      
       return new Response(
         JSON.stringify({ error: 'No task ID received from API', details: imageGenData }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -504,6 +571,18 @@ serve(async (req) => {
         // Check for failure
         else if (taskData.state === 'fail') {
           console.error('Job failed:', taskData);
+          
+          // ✅ REFUND TOKEN if job failed
+          if (tokenDeducted && userId) {
+            console.log('🔄 Refunding token due to job failure...');
+            await supabase.rpc('add_user_tokens', {
+              p_user_id: userId,
+              p_amount: 1,
+              p_token_type: 'purchased',
+              p_expiry_days: 0
+            });
+          }
+          
           return new Response(
             JSON.stringify({ 
               error: 'Image generation failed', 
@@ -527,41 +606,26 @@ serve(async (req) => {
     
     if (!generatedImageUrl) {
       console.error('Job timed out or no image generated');
+      
+      // ✅ REFUND TOKEN if generation failed
+      if (tokenDeducted && userId) {
+        console.log('🔄 Refunding token due to generation failure...');
+        await supabase.rpc('add_user_tokens', {
+          p_user_id: userId,
+          p_amount: 1,
+          p_token_type: 'purchased', // Add as purchased token (no expiry)
+          p_expiry_days: 0
+        });
+      }
+      
       return new Response(
         JSON.stringify({ error: 'Image generation timed out' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // ✅ IMAGE GENERATED SUCCESSFULLY - NOW DEDUCT TOKEN
-    if (userId) {
-      try {
-        const { data: deductResult, error: deductError } = await supabase.rpc('deduct_user_tokens', {
-          p_user_id: userId,
-          p_amount: 1
-        });
-
-        if (deductError) {
-          console.error('❌ Error deducting tokens:', deductError);
-          // Log error but continue (user got the image, we'll fix token manually if needed)
-        } else if (deductResult && deductResult.length > 0) {
-          const result = deductResult[0];
-          if (result.success) {
-            console.log('✅ Token deducted successfully:', {
-              subscription_used: result.subscription_used,
-              purchased_used: result.purchased_used,
-              remaining_subscription: result.remaining_subscription,
-              remaining_purchased: result.remaining_purchased,
-              total_remaining: result.remaining_subscription + result.remaining_purchased
-            });
-          } else {
-            console.error('❌ Failed to deduct tokens:', result.message);
-          }
-        }
-      } catch (deductError) {
-        console.error('❌ Exception deducting tokens:', deductError);
-      }
-    }
+    // ✅ IMAGE GENERATED SUCCESSFULLY - Token already deducted
+    // No need to deduct again, just save the image and history
 
     // Save the generated image to Supabase storage
     let savedImageUrl = generatedImageUrl;

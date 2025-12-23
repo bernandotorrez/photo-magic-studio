@@ -43,7 +43,7 @@ serve(async (req) => {
     // Verify API key
     const { data: apiKeyRecord, error: apiKeyError } = await supabase
       .from('api_keys')
-      .select('user_id, is_active')
+      .select('user_id, is_active, id')
       .eq('key_hash', hashedKey)
       .maybeSingle();
 
@@ -60,6 +60,9 @@ serve(async (req) => {
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const userId = apiKeyRecord.user_id;
+    const apiKeyId = apiKeyRecord.id;
 
     // Parse request body
     const { taskId } = await req.json();
@@ -129,6 +132,23 @@ serve(async (req) => {
       response.success = false;
       response.status = 'unknown';
       response.message = 'Unknown task state';
+    }
+
+    // ✅ LOG API KEY USAGE
+    try {
+      await supabase.rpc('log_api_key_usage', {
+        p_api_key_id: apiKeyId,
+        p_user_id: userId,
+        p_endpoint: 'api-check-status',
+        p_request_method: 'POST',
+        p_request_payload: { taskId: taskId },
+        p_response_status: 200,
+        p_ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
+        p_user_agent: req.headers.get('user-agent') || 'unknown'
+      });
+    } catch (logError) {
+      console.error('Failed to log API usage:', logError);
+      // Don't fail the request if logging fails
     }
 
     return new Response(
