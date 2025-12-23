@@ -27,7 +27,7 @@ interface UserProfile {
   user_id: string;
   full_name: string | null;
   email: string | null;
-  subscription_plan: 'free' | 'basic' | 'pro';
+  subscription_plan: 'free' | 'basic' | 'basic_plus' | 'pro' | 'pro_max';
   monthly_generate_limit: number;
   current_month_generates: number;
   is_admin: boolean;
@@ -96,12 +96,14 @@ export function UserManagement() {
     setFilteredUsers(filtered);
   };
 
-  const updateUserPlan = async (userId: string, newPlan: 'free' | 'basic' | 'pro') => {
+  const updateUserPlan = async (userId: string, newPlan: 'free' | 'basic' | 'basic_plus' | 'pro' | 'pro_max') => {
     try {
       const limits = {
-        free: 3,
-        basic: 50,
-        pro: 999999,
+        free: 2,
+        basic: 30,
+        basic_plus: 52,  // 50+2
+        pro: 78,         // 75+3
+        pro_max: 105,    // 100+5
       };
 
       const { error } = await supabase
@@ -164,7 +166,11 @@ export function UserManagement() {
         return 'secondary';
       case 'basic':
         return 'default';
+      case 'basic_plus':
+        return 'default';
       case 'pro':
+        return 'destructive';
+      case 'pro_max':
         return 'destructive';
       default:
         return 'secondary';
@@ -206,7 +212,9 @@ export function UserManagement() {
               <SelectItem value="all">All Plans</SelectItem>
               <SelectItem value="free">Free</SelectItem>
               <SelectItem value="basic">Basic</SelectItem>
+              <SelectItem value="basic_plus">Basic Plus</SelectItem>
               <SelectItem value="pro">Pro</SelectItem>
+              <SelectItem value="pro_max">Pro Max</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -256,16 +264,18 @@ export function UserManagement() {
                       <Select
                         value={user.subscription_plan}
                         onValueChange={(value) =>
-                          updateUserPlan(user.user_id, value as 'free' | 'basic' | 'pro')
+                          updateUserPlan(user.user_id, value as 'free' | 'basic' | 'basic_plus' | 'pro' | 'pro_max')
                         }
                       >
-                        <SelectTrigger className="w-[100px]">
+                        <SelectTrigger className="w-[120px]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="free">Free</SelectItem>
                           <SelectItem value="basic">Basic</SelectItem>
+                          <SelectItem value="basic_plus">Basic Plus</SelectItem>
                           <SelectItem value="pro">Pro</SelectItem>
+                          <SelectItem value="pro_max">Pro Max</SelectItem>
                         </SelectContent>
                       </Select>
                     </TableCell>
