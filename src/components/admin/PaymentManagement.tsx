@@ -107,31 +107,27 @@ export default function PaymentManagement() {
   const handleApprove = async (paymentId: string) => {
     setProcessingId(paymentId);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
       const payment = payments.find(p => p.id === paymentId);
-      const bonusFromUniqueCode = payment?.unique_code ? calculateBonusFromUniqueCode(payment.unique_code) : 0;
       
-      // Bonus tokens sudah dihitung di backend, kita hanya perlu update status
-      const { error: updateError } = await supabase
-        .from('payments' as any)
-        .update({
-          payment_status: 'approved',
-          verified_by: user.id,
-          verified_at: new Date().toISOString(),
-          admin_notes: notes[paymentId] || null
-        })
-        .eq('id', paymentId);
-
-      if (updateError) throw updateError;
-
-      // Process payment (add tokens to user)
-      const { data: success, error: processError } = await supabase
+      // Call process_approved_payment function
+      // This function will:
+      // 1. Find payment with status='pending'
+      // 2. Add tokens to user (including bonus)
+      // 3. Update payment status to 'approved'
+      const { error: processError } = await supabase
         .rpc('process_approved_payment' as any, { payment_id: paymentId });
 
       if (processError) throw processError;
-      if (!success) throw new Error('Failed to process payment');
+
+      // Update admin notes if provided
+      if (notes[paymentId]) {
+        const { error: notesError } = await supabase
+          .from('payments' as any)
+          .update({ admin_notes: notes[paymentId] })
+          .eq('id', paymentId);
+        
+        if (notesError) console.error('Failed to update notes:', notesError);
+      }
 
       const breakdown = payment ? getBonusTokenBreakdown(payment) : null;
       let message = 'Payment approved and tokens added to user account';
