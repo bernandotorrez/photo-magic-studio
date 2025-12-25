@@ -357,45 +357,178 @@ serve(async (req) => {
       titleLower.includes('tangan') ||
       titleLower.includes('pergelangan');
     
+    // Check if this is fashion category that needs model
+    const isFashionCategory = classification === 'fashion';
+    
     let modelType = '';
-    // Add model reference image if using model enhancement
-    if (needsModel) {
-      // Determine which model to use based on gender/type
-      if (titleLower.includes('hijab') || titleLower.includes('berhijab')) {
+    // Add model reference image if using model enhancement OR if it's fashion category
+    if (needsModel || isFashionCategory) {
+      // Determine which model to use based on gender/type from enhancement titles
+      let genderDetected = false;
+      
+      // Check all enhancement titles for gender keywords
+      const allTitles = enhancementTitles.join(' ').toLowerCase();
+      
+      // Priority 1: Check for hijab keywords
+      if (allTitles.includes('hijab') || allTitles.includes('berhijab') || 
+          allTitles.includes('jilbab') || allTitles.includes('kerudung')) {
         imageUrls.push('https://dcfnvebphjuwtlfuudcd.supabase.co/storage/v1/object/public/model-assets/model_female_hijab.png');
         modelType = 'female with hijab';
-        console.log('Adding female hijab model reference');
-      } else if (titleLower.includes('wanita') || titleLower.includes('female') || titleLower.includes('woman')) {
-        imageUrls.push('https://dcfnvebphjuwtlfuudcd.supabase.co/storage/v1/object/public/model-assets/model_female.png');
-        modelType = 'female';
-        console.log('Adding female model reference');
-      } else if (titleLower.includes('pria') || titleLower.includes('male') || titleLower.includes('man')) {
+        genderDetected = true;
+        console.log('✅ Adding female hijab model reference (detected from enhancement)');
+      }
+      // Priority 2: Check for male keywords
+      else if (allTitles.includes('pria') || allTitles.includes('male') || 
+               allTitles.includes('man') || allTitles.includes('laki-laki') ||
+               allTitles.includes('cowok') || allTitles.includes('men')) {
         imageUrls.push('https://dcfnvebphjuwtlfuudcd.supabase.co/storage/v1/object/public/model-assets/model_male.png');
         modelType = 'male';
-        console.log('Adding male model reference');
-      } else {
-        // Default to female model for accessories and unspecified items
+        genderDetected = true;
+        console.log('✅ Adding male model reference (detected from enhancement)');
+      }
+      // Priority 3: Check for female keywords
+      else if (allTitles.includes('wanita') || allTitles.includes('female') || 
+               allTitles.includes('woman') || allTitles.includes('perempuan') ||
+               allTitles.includes('cewek') || allTitles.includes('women')) {
         imageUrls.push('https://dcfnvebphjuwtlfuudcd.supabase.co/storage/v1/object/public/model-assets/model_female.png');
         modelType = 'female';
-        console.log('Adding default female model reference');
+        genderDetected = true;
+        console.log('✅ Adding female model reference (detected from enhancement)');
+      }
+      
+      // If no gender detected from enhancement, check from legacy enhancement variable
+      if (!genderDetected && titleLower) {
+        if (titleLower.includes('hijab') || titleLower.includes('berhijab')) {
+          imageUrls.push('https://dcfnvebphjuwtlfuudcd.supabase.co/storage/v1/object/public/model-assets/model_female_hijab.png');
+          modelType = 'female with hijab';
+          genderDetected = true;
+          console.log('✅ Adding female hijab model reference (detected from title)');
+        } else if (titleLower.includes('pria') || titleLower.includes('male') || titleLower.includes('man')) {
+          imageUrls.push('https://dcfnvebphjuwtlfuudcd.supabase.co/storage/v1/object/public/model-assets/model_male.png');
+          modelType = 'male';
+          genderDetected = true;
+          console.log('✅ Adding male model reference (detected from title)');
+        } else if (titleLower.includes('wanita') || titleLower.includes('female') || titleLower.includes('woman')) {
+          imageUrls.push('https://dcfnvebphjuwtlfuudcd.supabase.co/storage/v1/object/public/model-assets/model_female.png');
+          modelType = 'female';
+          genderDetected = true;
+          console.log('✅ Adding female model reference (detected from title)');
+        }
+      }
+      
+      // If still no gender detected, DON'T add model - let user choose manually
+      if (!genderDetected) {
+        console.log('⚠️ No gender detected - skipping model reference. User should select model manually via enhancement.');
+        // Remove the model URL that might have been added
+        if (imageUrls.length > 1) {
+          imageUrls.pop();
+        }
       }
     }
 
     // Build final prompt with context about multiple images
     let generatedPrompt = enhancementPrompt;
-    if (needsModel && imageUrls.length === 2) {
+    if ((needsModel || isFashionCategory) && imageUrls.length === 2) {
       // Use clear format that explicitly references file 1 and file 2
       // File 1 = Product, File 2 = Model (this is the correct order)
-      const productType = titleLower.includes('shirt') || titleLower.includes('kaos') || titleLower.includes('baju') ? 'shirt' :
-                         titleLower.includes('dress') || titleLower.includes('gaun') ? 'dress' :
-                         titleLower.includes('jacket') || titleLower.includes('jaket') ? 'jacket' :
-                         titleLower.includes('pants') || titleLower.includes('celana') ? 'pants' :
-                         titleLower.includes('shoe') || titleLower.includes('sepatu') ? 'shoes' :
-                         titleLower.includes('bag') || titleLower.includes('tas') ? 'bag' :
-                         titleLower.includes('watch') || titleLower.includes('jam') ? 'watch' :
-                         titleLower.includes('necklace') || titleLower.includes('kalung') ? 'necklace' :
-                         titleLower.includes('bracelet') || titleLower.includes('gelang') ? 'bracelet' :
-                         'clothing';
+      
+      // Define product type keywords in arrays for easy maintenance
+      const productTypeKeywords = {
+        // Pakaian Atas (Upper Body)
+        'shirt': ['shirt', 'kaos', 'baju', 'blouse', 'polo', 'tank', 'top', 'tunic'],
+        't-shirt': ['tshirt', 't-shirt'],
+        
+        // Pakaian Luar (Outerwear)
+        'jacket': ['jacket', 'jaket'],
+        'coat': ['coat', 'mantel'],
+        'blazer': ['blazer'],
+        'cardigan': ['cardigan'],
+        'hoodie': ['hoodie'],
+        'sweater': ['sweater', 'pullover'],
+        'vest': ['vest', 'waistcoat', 'rompi'],
+        'poncho': ['poncho'],
+        'cape': ['cape', 'shawl'],
+        'parka': ['parka'],
+        'trench coat': ['trench'],
+        'windbreaker': ['windbreaker'],
+        'bomber jacket': ['bomber'],
+        
+        // Pakaian Bawah (Lower Body)
+        'pants': ['pants', 'celana', 'trousers'],
+        'jeans': ['jean', 'denim'],
+        'shorts': ['shorts'],
+        'skirt': ['skirt', 'rok'],
+        'leggings': ['legging'],
+        'joggers': ['jogger'],
+        'cargo pants': ['cargo'],
+        'chinos': ['chino'],
+        'culottes': ['culottes', 'palazzo'],
+        
+        // Pakaian Lengkap (Full Body)
+        'dress': ['dress', 'gaun'],
+        'gown': ['gown'],
+        'jumpsuit': ['jumpsuit'],
+        'romper': ['romper'],
+        'overalls': ['overall', 'coverall'],
+        'suit': ['suit', 'jas'],
+        'tuxedo': ['tuxedo'],
+        
+        // Pakaian Tradisional
+        'kimono': ['kimono'],
+        'kaftan': ['kaftan'],
+        'sarong': ['sarong', 'sarung'],
+        'abaya': ['abaya'],
+        'hanbok': ['hanbok'],
+        'cheongsam': ['cheongsam', 'qipao'],
+        
+        // Pakaian Olahraga
+        'tracksuit': ['tracksuit'],
+        'swimwear': ['swimsuit', 'bikini', 'swimwear'],
+        
+        // Sepatu (Footwear)
+        'shoes': ['shoe', 'sepatu'],
+        'boots': ['boot'],
+        'sneakers': ['sneaker'],
+        'sandals': ['sandal'],
+        'heels': ['heel', 'pump', 'stiletto'],
+        'slippers': ['slipper'],
+        'loafers': ['loafer'],
+        
+        // Tas & Aksesoris (Bags & Accessories)
+        'bag': ['bag', 'tas'],
+        'backpack': ['backpack', 'ransel'],
+        'handbag': ['handbag', 'purse'],
+        'clutch': ['clutch'],
+        'tote bag': ['tote'],
+        'satchel': ['satchel'],
+        'briefcase': ['briefcase'],
+        'messenger bag': ['messenger'],
+        'crossbody bag': ['crossbody'],
+        
+        // Aksesoris Lainnya
+        'watch': ['watch', 'jam'],
+        'necklace': ['necklace', 'kalung'],
+        'bracelet': ['bracelet', 'gelang'],
+        'ring': ['ring', 'cincin'],
+        'earrings': ['earring', 'anting'],
+        'belt': ['belt', 'ikat pinggang'],
+        'scarf': ['scarf', 'syal'],
+        'hat': ['hat', 'topi'],
+        'cap': ['cap'],
+        'sunglasses': ['sunglasses', 'kacamata']
+      };
+      
+      // Find matching product type
+      let productType = 'clothing'; // default
+      for (const [type, keywords] of Object.entries(productTypeKeywords)) {
+        for (const keyword of keywords) {
+          if (titleLower.includes(keyword)) {
+            productType = type;
+            break;
+          }
+        }
+        if (productType !== 'clothing') break;
+      }
       
       // Enhanced prompt with explicit file references and better instructions
       generatedPrompt = `Make the ${productType} from file 1 worn by the model from file 2. The model should use a natural professional pose like a fashion model to showcase the ${productType}. Keep the exact face, body, and appearance of the model from file 2. Preserve any text, logos, or branding that exists on the ${productType} from file 1 - do not remove or alter them. Use professional e-commerce photography style with clean background and studio lighting. The ${productType} should fit naturally on the model's body.`;

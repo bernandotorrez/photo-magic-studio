@@ -101,26 +101,55 @@ serve(async (req) => {
           
           console.log('Top label detected:', topLabel);
           
-          // Map to specific fashion sub-categories for better enhancement selection
-          // But we'll still use 'fashion' as the main category code
-          if (topLabel.includes('shirt') || topLabel.includes('dress') || topLabel.includes('jacket') || 
-              topLabel.includes('coat') || topLabel.includes('sweater') || topLabel.includes('jean') ||
-              topLabel.includes('pants') || topLabel.includes('skirt') || topLabel.includes('blouse') ||
-              topLabel.includes('hoodie') || topLabel.includes('cardigan') || topLabel.includes('suit') ||
-              topLabel.includes('vest') || topLabel.includes('polo') || topLabel.includes('tshirt') ||
-              topLabel.includes('shorts') || topLabel.includes('legging') || topLabel.includes('swimsuit')) {
-            category = 'fashion';
-          } else if (topLabel.includes('shoe') || topLabel.includes('boot') || topLabel.includes('sneaker') ||
-                     topLabel.includes('sandal') || topLabel.includes('heel') || topLabel.includes('slipper') ||
-                     topLabel.includes('loafer') || topLabel.includes('oxford') || topLabel.includes('moccasin')) {
-            category = 'fashion';
-          } else if (topLabel.includes('bag') || topLabel.includes('purse') || topLabel.includes('backpack') ||
-                     topLabel.includes('wallet') || topLabel.includes('handbag') || topLabel.includes('clutch') ||
-                     topLabel.includes('tote') || topLabel.includes('satchel') || topLabel.includes('briefcase')) {
-            category = 'fashion';
-          } else {
-            category = 'fashion'; // Default to fashion for all products
+          // Define fashion keywords in arrays for easy maintenance
+          const fashionKeywords = {
+            clothing: [
+              // Pakaian Atas (Upper Body)
+              'shirt', 'blouse', 'tshirt', 't-shirt', 'polo', 'tank', 'top', 'tunic', 'halter',
+              // Pakaian Luar (Outerwear)
+              'jacket', 'coat', 'blazer', 'cardigan', 'hoodie', 'sweater', 'pullover', 'vest', 
+              'waistcoat', 'poncho', 'cape', 'shawl', 'parka', 'trench', 'windbreaker', 'bomber',
+              'denim jacket', 'leather jacket',
+              // Pakaian Bawah (Lower Body)
+              'pants', 'trousers', 'jean', 'shorts', 'skirt', 'legging', 'jogger', 'cargo', 
+              'chino', 'culottes', 'palazzo', 'capri',
+              // Pakaian Lengkap (Full Body)
+              'dress', 'gown', 'jumpsuit', 'romper', 'overall', 'coverall', 'suit', 'tuxedo', 'uniform',
+              // Pakaian Tradisional & Khusus
+              'kimono', 'kaftan', 'sarong', 'sari', 'abaya', 'thobe', 'hanbok', 'cheongsam', 'qipao',
+              // Pakaian Olahraga & Santai
+              'tracksuit', 'sportswear', 'activewear', 'swimsuit', 'bikini', 'swimwear', 'rash guard', 'wetsuit',
+              // Pakaian Dalam & Tidur
+              'lingerie', 'underwear', 'bra', 'pajama', 'nightgown', 'robe', 'sleepwear'
+            ],
+            footwear: [
+              'shoe', 'boot', 'sneaker', 'sandal', 'heel', 'slipper', 'loafer', 'oxford', 'moccasin',
+              'pump', 'stiletto', 'wedge', 'platform', 'ankle boot', 'knee boot', 'chelsea', 
+              'combat boot', 'hiking boot', 'running shoe', 'basketball shoe', 'cleat', 
+              'flip flop', 'espadrille', 'ballet flat', 'derby', 'brogue', 'monk strap'
+            ],
+            bags: [
+              'bag', 'purse', 'backpack', 'wallet', 'handbag', 'clutch', 'tote', 'satchel', 
+              'briefcase', 'messenger', 'crossbody', 'shoulder bag', 'duffel', 'luggage', 
+              'suitcase', 'pouch', 'cosmetic bag', 'fanny pack', 'belt bag', 'bucket bag'
+            ]
+          };
+          
+          // Check if label matches any fashion category
+          let isFashion = false;
+          for (const categoryType in fashionKeywords) {
+            const keywords = fashionKeywords[categoryType as keyof typeof fashionKeywords];
+            for (const keyword of keywords) {
+              if (topLabel.includes(keyword)) {
+                isFashion = true;
+                break;
+              }
+            }
+            if (isFashion) break;
           }
+          
+          // Set category
+          category = isFashion ? 'fashion' : 'fashion'; // Default to fashion for all products
           
           console.log('Mapped to category:', category);
         }
