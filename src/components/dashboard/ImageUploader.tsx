@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, Image as ImageIcon, Loader2, Link as LinkIcon, Camera, Info } from 'lucide-react';
+import { Upload, Image as ImageIcon, Loader2, Link as LinkIcon, Camera, Info, SwitchCamera } from 'lucide-react';
 
 interface Profile {
   subscription_tokens: number;
@@ -37,6 +37,7 @@ export function ImageUploader({
   const [uploadMethod, setUploadMethod] = useState<'file' | 'url' | 'camera'>('file');
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user'); // 'user' = depan, 'environment' = belakang
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const { user } = useAuth();
@@ -280,7 +281,7 @@ export function ImageUploader({
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
-          facingMode: 'user', // Front camera for selfies
+          facingMode: facingMode, // Use state for camera selection
           width: { ideal: 1280 },
           height: { ideal: 720 }
         } 
@@ -324,6 +325,53 @@ export function ImageUploader({
       toast({
         title: 'Kamera Gagal Dibuka',
         description: errorMessage,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const switchCamera = async () => {
+    // Stop current camera
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    
+    // Toggle facing mode
+    const newFacingMode = facingMode === 'user' ? 'environment' : 'user';
+    setFacingMode(newFacingMode);
+    
+    // Restart camera with new facing mode
+    setCameraError(null);
+    
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: newFacingMode,
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      });
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
+        
+        toast({
+          title: 'Kamera Berhasil Diubah',
+          description: newFacingMode === 'user' ? 'Menggunakan kamera depan' : 'Menggunakan kamera belakang',
+        });
+      }
+    } catch (error: any) {
+      console.error('❌ Switch camera error:', error);
+      setCameraError('Gagal mengganti kamera. Perangkat mungkin tidak memiliki kamera ' + (newFacingMode === 'user' ? 'depan' : 'belakang'));
+      
+      // Revert to previous facing mode
+      setFacingMode(facingMode);
+      
+      toast({
+        title: 'Gagal Mengganti Kamera',
+        description: 'Perangkat mungkin tidak memiliki kamera ' + (newFacingMode === 'user' ? 'depan' : 'belakang'),
         variant: 'destructive',
       });
     }
@@ -646,6 +694,14 @@ export function ImageUploader({
                       Ambil Foto
                     </>
                   )}
+                </Button>
+                <Button 
+                  onClick={switchCamera}
+                  variant="outline"
+                  disabled={isUploading}
+                  title={facingMode === 'user' ? 'Ganti ke Kamera Belakang' : 'Ganti ke Kamera Depan'}
+                >
+                  <SwitchCamera className="w-4 h-4" />
                 </Button>
                 <Button 
                   onClick={stopCamera}
